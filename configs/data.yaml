@@ -1,0 +1,15 @@
+# Dataset configuration for YOLO11 training
+
+# Dataset paths
+train: ./data/train/images
+val: ./data/val/images
+test: ./data/test/images
+
+# Number of classes
+nc: 3
+
+# Class names
+names:
+  0: ripe_strawberry
+  1: unripe_strawberry
+  2: damaged_strawberry
