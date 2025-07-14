@@ -23,19 +23,8 @@ runs/
 visualizations/
 
 # Dataset files (keep structure but ignore actual data)
-data/datasets/*/images/
-data/datasets/*/labels/
-data/processed/*/train/
-data/processed/*/val/
-data/processed/*/test/
-
-# But keep these files in dataset directories
-!data/datasets/*/classes.txt
-!data/datasets/*/notes.json
-!data/datasets/*/README.md
-!data/processed/*/classes.txt
-!data/processed/*/notes.json
-!data/processed/*/dataset_config.yaml
+data/datasets/*
+data/processed/*
 
 # Compressed files
 *.zip
