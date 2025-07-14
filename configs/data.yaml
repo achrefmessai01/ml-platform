@@ -1,15 +1,20 @@
 # Dataset configuration for YOLO11 training
+# This is a template - specific dataset configs will be generated automatically
 
-# Dataset paths
-train: ./data/train/images
-val: ./data/val/images
-test: ./data/test/images
+# Default dataset paths (will be overridden by specific dataset configs)
+train: ./data/processed/farm_dataset/train/images
+val: ./data/processed/farm_dataset/val/images
+test: ./data/processed/farm_dataset/test/images
 
-# Number of classes
-nc: 3
+# Farm dataset classes (from classes.txt)
+nc: 7
 
-# Class names
+# Class names (from farm_dataset/notes.json)
 names:
-  0: ripe_strawberry
-  1: unripe_strawberry
-  2: damaged_strawberry
+  0: Flower
+  1: Flower_Fruit
+  2: Green_Fruit
+  3: Green_White_Fruit
+  4: Red_Fruit
+  5: UNSURE
+  6: White_Red_Fruit

@@ -4,8 +4,6 @@ Download YOLO11 pre-trained models
 """
 
 import os
-import requests
-from pathlib import Path
 
 def download_model(model_name: str = "yolo11n.pt", models_dir: str = "models"):
     """

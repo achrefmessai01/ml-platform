@@ -3,12 +3,16 @@ Utility functions for the strawberry classifier project
 """
 
 import os
-import cv2
-import numpy as np
 from pathlib import Path
 import yaml
 import json
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict, Optional, Any
+
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
 
 def load_yaml(file_path: str) -> Dict:
     """Load YAML configuration file"""
@@ -81,7 +85,7 @@ def convert_bbox_format(bbox: List[float], img_width: int, img_height: int,
     return bbox
 
 def visualize_annotations(image_path: str, label_path: str, class_names: List[str], 
-                         output_path: Optional[str] = None) -> np.ndarray:
+                         output_path: Optional[str] = None) -> Any:
     """
     Visualize YOLO annotations on an image
     
@@ -94,6 +98,9 @@ def visualize_annotations(image_path: str, label_path: str, class_names: List[st
     Returns:
         Annotated image as numpy array
     """
+    if not CV2_AVAILABLE:
+        raise ImportError("OpenCV (cv2) is required for visualization. Install with: pip install opencv-python")
+    
     # Load image
     image = cv2.imread(image_path)
     if image is None:

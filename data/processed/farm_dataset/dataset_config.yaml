@@ -1,0 +1,14 @@
+name: farm_dataset
+names:
+  0: Flower
+  1: Flower_Fruit
+  2: Green_Fruit
+  3: Green_White_Fruit
+  4: Red_Fruit
+  5: UNSURE
+  6: White_Red_Fruit
+nc: 7
+path: data/processed/farm_dataset
+test: data/processed/farm_dataset/test/images
+train: data/processed/farm_dataset/train/images
+val: data/processed/farm_dataset/val/images

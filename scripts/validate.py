@@ -3,7 +3,6 @@
 YOLO11 Validation Script for Strawberry Classification
 """
 
-import os
 from ultralytics import YOLO
 import argparse
 
