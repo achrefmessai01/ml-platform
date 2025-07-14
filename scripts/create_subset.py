@@ -9,6 +9,7 @@ import sys
 import json
 import shutil
 import argparse
+import numpy as np
 from pathlib import Path
 from typing import List, Set, Dict, Tuple
 
@@ -16,6 +17,14 @@ from typing import List, Set, Dict, Tuple
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.data_utils import load_yaml, save_yaml, validate_dataset_structure
+
+# Import Ultralytics utility for segment to bbox conversion
+try:
+    from ultralytics.utils.ops import segments2boxes
+    ULTRALYTICS_AVAILABLE = True
+except ImportError:
+    segments2boxes = None
+    ULTRALYTICS_AVAILABLE = False
 
 def load_class_names(dataset_dir: str) -> Dict[int, str]:
     """Load class names from dataset configuration"""
@@ -88,10 +97,49 @@ def parse_class_filter(class_filter: str, class_names: Dict[int, str]) -> Set[in
     
     return class_ids
 
-def filter_label_file(label_path: str, allowed_classes: Set[int]) -> Tuple[bool, List[str]]:
+def polygon_to_bbox(polygon_points: List[float]) -> Tuple[float, float, float, float] | None:
+    """
+    Convert polygon points to bounding box in YOLO format using Ultralytics segments2boxes utility
+    
+    Args:
+        polygon_points: List of normalized coordinates [x1, y1, x2, y2, ..., xn, yn]
+    Returns:
+        Tuple of (center_x, center_y, width, height) in normalized coordinates
+    """
+    if len(polygon_points) < 6:  # Need at least 3 points (6 coordinates)
+        return None
+    
+    if not ULTRALYTICS_AVAILABLE or segments2boxes is None:
+        raise ImportError("Ultralytics is required for polygon-to-bbox conversion. Please install ultralytics: pip install ultralytics")
+    
+    try:
+        # Reshape polygon points to (n, 2) format expected by segments2boxes
+        points = np.array(polygon_points).reshape(-1, 2)
+        # segments2boxes expects shape (1, n, 2) for batch processing
+        segments = points[np.newaxis, ...]
+        
+        # Convert segments to bounding boxes
+        boxes = segments2boxes(segments)
+        
+        # Extract the single box (x_center, y_center, width, height)
+        if len(boxes) > 0:
+            x_center, y_center, width, height = boxes[0]
+            return float(x_center), float(y_center), float(width), float(height)
+        else:
+            return None
+            
+    except Exception as e:
+        raise RuntimeError(f"Failed to convert polygon to bbox using Ultralytics segments2boxes: {e}")
+
+def filter_label_file(label_path: str, allowed_classes: Set[int], convert_to_bbox: bool = False) -> Tuple[bool, List[str]]:
     """
     Filter a YOLO label file to only include allowed classes
-    Returns (has_valid_annotations, filtered_lines)
+    Args:
+        label_path: Path to the label file
+        allowed_classes: Set of allowed class IDs
+        convert_to_bbox: If True, convert polygon/segmentation labels to bounding boxes
+    Returns:
+        (has_valid_annotations, filtered_lines)
     """
     if not os.path.exists(label_path):
         return False, []
@@ -107,13 +155,40 @@ def filter_label_file(label_path: str, allowed_classes: Set[int]) -> Tuple[bool,
                 continue
             
             parts = line.split()
-            if len(parts) >= 5:  # class_id x y w h (minimum for YOLO format)
-                try:
-                    class_id = int(parts[0])
-                    if class_id in allowed_classes:
-                        filtered_lines.append(line + '\n')
-                except ValueError:
+            if len(parts) < 2:  # Need at least class_id and one coordinate
+                continue
+            
+            try:
+                class_id = int(parts[0])
+                if class_id not in allowed_classes:
                     continue
+                
+                # Check if this is a bounding box (5 parts) or polygon/segmentation (>5 parts)
+                if len(parts) == 5:
+                    # Standard YOLO bounding box format: class_id x y w h
+                    filtered_lines.append(line + '\n')
+                elif len(parts) > 5 and convert_to_bbox:
+                    # Polygon/segmentation format: class_id x1 y1 x2 y2 ... xn yn
+                    # Convert to bounding box
+                    try:
+                        polygon_points = [float(p) for p in parts[1:]]
+                        bbox = polygon_to_bbox(polygon_points)
+                        if bbox:
+                            center_x, center_y, width, height = bbox
+                            bbox_line = f"{class_id} {center_x:.6f} {center_y:.6f} {width:.6f} {height:.6f}\n"
+                            filtered_lines.append(bbox_line)
+                    except (ValueError, TypeError):
+                        print(f"Warning: Could not convert polygon to bbox in {label_path}: {line}")
+                        continue
+                elif len(parts) > 5 and not convert_to_bbox:
+                    # Keep polygon/segmentation format as-is
+                    filtered_lines.append(line + '\n')
+                else:
+                    # Invalid format
+                    continue
+                    
+            except ValueError:
+                continue
         
         return len(filtered_lines) > 0, filtered_lines
     
@@ -122,7 +197,8 @@ def filter_label_file(label_path: str, allowed_classes: Set[int]) -> Tuple[bool,
         return False, []
 
 def create_subset_split(source_split_dir: str, target_split_dir: str, 
-                       allowed_classes: Set[int], class_names: Dict[int, str]) -> Dict[str, int]:
+                       allowed_classes: Set[int], class_names: Dict[int, str], 
+                       convert_to_bbox: bool = False) -> Dict[str, int]:
     """Create a subset for one split (train/val/test)"""
     images_dir = os.path.join(source_split_dir, 'images')
     labels_dir = os.path.join(source_split_dir, 'labels')
@@ -152,7 +228,7 @@ def create_subset_split(source_split_dir: str, target_split_dir: str,
         label_path = os.path.join(labels_dir, label_file)
         
         # Filter the label file
-        has_valid_annotations, filtered_lines = filter_label_file(label_path, allowed_classes)
+        has_valid_annotations, filtered_lines = filter_label_file(label_path, allowed_classes, convert_to_bbox)
         
         if has_valid_annotations:
             # Copy image
@@ -253,7 +329,7 @@ def update_notes_json(source_file: str, target_file: str, allowed_classes: Set[i
         shutil.copy2(source_file, target_file)
 
 def create_dataset_subset(source_dataset: str, target_dataset: str, class_filter: str, 
-                         remap_classes: bool = True) -> str:
+                         remap_classes: bool = True, convert_to_bbox: bool = False) -> str:
     """
     Create a subset of a dataset containing only specified classes
     
@@ -262,6 +338,7 @@ def create_dataset_subset(source_dataset: str, target_dataset: str, class_filter
         target_dataset: Path to target dataset directory  
         class_filter: Comma-separated list of class names or IDs to include
         remap_classes: Whether to remap class IDs to be sequential starting from 0
+        convert_to_bbox: Whether to convert polygon/segmentation labels to bounding boxes
     
     Returns:
         Path to created subset dataset
@@ -287,6 +364,11 @@ def create_dataset_subset(source_dataset: str, target_dataset: str, class_filter
     for class_id in sorted(allowed_classes):
         print(f"  {class_id}: {class_names[class_id]}")
     
+    if convert_to_bbox:
+        if not ULTRALYTICS_AVAILABLE or segments2boxes is None:
+            raise ImportError("Ultralytics is required for polygon-to-bbox conversion. Please install ultralytics: pip install ultralytics")
+        print(f"\n🔄 Converting polygon/segmentation labels to bounding boxes using Ultralytics segments2boxes")
+    
     # Create target directory
     os.makedirs(target_dataset, exist_ok=True)
     
@@ -300,7 +382,7 @@ def create_dataset_subset(source_dataset: str, target_dataset: str, class_filter
         if os.path.exists(source_split_dir):
             print(f"\n📂 Processing {split} split...")
             split_stats = create_subset_split(source_split_dir, target_split_dir, 
-                                            allowed_classes, class_names)
+                                            allowed_classes, class_names, convert_to_bbox)
             
             print(f"  Images: {split_stats['kept_images']}/{split_stats['total_images']} kept")
             print(f"  Annotations: {split_stats['kept_annotations']}")
@@ -361,6 +443,7 @@ def create_dataset_subset(source_dataset: str, target_dataset: str, class_filter
         'allowed_classes': list(sorted(allowed_classes)),
         'class_names': {class_id: class_names[class_id] for class_id in allowed_classes},
         'remap_classes': remap_classes,
+        'convert_to_bbox': convert_to_bbox,
         'class_id_mapping': class_id_mapping if remap_classes else {},
         'statistics': total_stats
     }
@@ -398,6 +481,8 @@ def main():
                        help='Comma-separated list of class names or IDs to include (e.g., "Red_Fruit,Green_Fruit" or "0,1,2")')
     parser.add_argument('--no-remap', action='store_true',
                        help='Do not remap class IDs to be sequential (keep original IDs)')
+    parser.add_argument('--convert-to-bbox', action='store_true',
+                       help='Convert polygon/segmentation labels to bounding boxes (requires ultralytics)')
     parser.add_argument('--list-classes', action='store_true',
                        help='List available classes in the source dataset and exit')
     
@@ -423,7 +508,8 @@ def main():
             source_dataset=args.source,
             target_dataset=args.target,
             class_filter=args.classes,
-            remap_classes=not args.no_remap
+            remap_classes=not args.no_remap,
+            convert_to_bbox=args.convert_to_bbox
         )
         print(f"\n🎉 Dataset subset '{args.target}' created successfully!")
         

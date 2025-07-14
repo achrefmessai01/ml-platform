@@ -1,6 +1,6 @@
 {
   "source_dataset": "data/processed/strawberry_disease_dataset",
-  "target_dataset": "data/processed/open_source_strawberry_dataset",
+  "target_dataset": "data/processed/open_source_dataset",
   "class_filter": "Early-Turning,Green-Strawberry,White-Strawberry,Turning,Late-Turning,Red-Turning",
   "allowed_classes": [
     2,
@@ -19,6 +19,7 @@
     "11": "White-Strawberry"
   },
   "remap_classes": true,
+  "convert_to_bbox": true,
   "class_id_mapping": {
     "2": 0,
     "4": 1,
