@@ -11,7 +11,7 @@ def main():
     parser = argparse.ArgumentParser(description='Validate dataset and visualize annotations')
     parser.add_argument('--data-dir', type=str, default='data',
                        help='Path to dataset directory')
-    parser.add_argument('--config', type=str, default='configs/data.yaml',
+    parser.add_argument('--config', type=str, default='data/processed/farm_dataset/data.yaml',
                        help='Path to data configuration file')
     parser.add_argument('--visualize', action='store_true',
                        help='Visualize sample annotations')

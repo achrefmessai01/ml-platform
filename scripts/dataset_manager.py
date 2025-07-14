@@ -120,7 +120,7 @@ def analyze_raw_dataset(dataset_path: str):
     
     return info
 
-def create_training_config(dataset_name: str, base_dir: str = "data", output_file: str = None):
+def create_training_config(dataset_name: str, base_dir: str = "data", output_file: str | None = None):
     """Create a training configuration file for a specific dataset"""
     datasets = list_datasets(base_dir)
     
@@ -153,9 +153,9 @@ def create_training_config(dataset_name: str, base_dir: str = "data", output_fil
         'names': dataset_config['names']
     }
     
-    # Save config
+    # Save config within the dataset folder
     if output_file is None:
-        output_file = f"configs/{dataset_name}_data.yaml"
+        output_file = f"data/processed/{dataset_name}/data.yaml"
     
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     save_yaml(training_config, output_file)
@@ -184,7 +184,7 @@ def main():
     config_parser.add_argument('--base-dir', type=str, default='data',
                              help='Base directory for datasets')
     config_parser.add_argument('--output', type=str, 
-                             help='Output file for the config (default: configs/{dataset_name}_data.yaml)')
+                             help='Output file for the config (default: data/processed/{dataset_name}/data.yaml)')
     
     args = parser.parse_args()
     

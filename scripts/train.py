@@ -5,12 +5,20 @@ YOLO11 Training Script for Strawberry Classification
 
 from ultralytics import YOLO
 import argparse
+import os
+import sys
+import subprocess
+from pathlib import Path
+
+# Set local cache directories to avoid global downloads
+PROJECT_ROOT = Path(__file__).parent.parent
+os.environ['TORCH_HOME'] = str(PROJECT_ROOT / 'models' / 'cache')
 
 def main():
     parser = argparse.ArgumentParser(description='Train YOLO11 model for strawberry detection')
     parser.add_argument('--model', type=str, default='yolo11n.pt', 
                        help='Model variant (yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt)')
-    parser.add_argument('--data', type=str, default='configs/data.yaml',
+    parser.add_argument('--data', type=str, default='data/processed/farm_dataset/data.yaml',
                        help='Path to data configuration file')
     parser.add_argument('--epochs', type=int, default=100,
                        help='Number of training epochs')
@@ -24,13 +32,30 @@ def main():
                        help='Project directory to save results')
     parser.add_argument('--name', type=str, default='strawberry_classifier',
                        help='Experiment name')
+    parser.add_argument('--tensorboard', action='store_true',
+                       help='Enable TensorBoard logging during training')
     
     args = parser.parse_args()
     
-    # Load YOLO11 model
+    # Ensure local cache directory exists
+    cache_dir = PROJECT_ROOT / 'models' / 'cache'
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Load YOLO11 model (will download to local cache if needed)
+    print(f"Loading model: {args.model}")
     model = YOLO(args.model)
     
-    # Train the model
+    # Enable TensorBoard logging if requested
+    if args.tensorboard:
+        try:
+            import tensorboard  # noqa: F401
+            print("📈 TensorBoard logging enabled - logs will be saved automatically")
+        except ImportError:
+            print("⚠️  TensorBoard not found, installing...")
+            subprocess.run([sys.executable, "-m", "pip", "install", "tensorboard"], check=True)
+            print("✅ TensorBoard installed successfully!")
+    
+    # Train the model (TensorBoard logging is automatic when tensorboard is available)
     results = model.train(
         data=args.data,
         epochs=args.epochs,
@@ -44,7 +69,9 @@ def main():
         verbose=True
     )
     
-    print(f"Training completed! Results saved to: {results.save_dir}")
+    # Print completion message
+    save_dir = Path(args.project) / args.name
+    print(f"Training completed! Results saved to: {save_dir}")
 
 if __name__ == "__main__":
     main()

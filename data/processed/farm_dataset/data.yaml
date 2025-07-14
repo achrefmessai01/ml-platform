@@ -1,0 +1,6 @@
+train: train/images
+val: val/images
+test: test/images
+
+nc: 7
+names: ['Flower', 'Flower_Fruit', 'Green_Fruit', 'Green_White_Fruit', 'Red_Fruit', 'UNSURE', 'White_Red_Fruit']

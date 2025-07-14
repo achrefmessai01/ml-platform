@@ -5,13 +5,17 @@ YOLO11 Validation Script for Strawberry Classification
 
 from ultralytics import YOLO
 import argparse
+import os
+from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description='Validate YOLO11 model for strawberry detection')
     parser.add_argument('--model', type=str, required=True,
                        help='Path to trained model (e.g., runs/train/strawberry_classifier/weights/best.pt)')
-    parser.add_argument('--data', type=str, default='configs/data.yaml',
-                       help='Path to data configuration file')
+    parser.add_argument('--dataset', type=str, required=True,
+                       help='Dataset name (will look for data.yaml in data/processed/{dataset}/data.yaml)')
+    parser.add_argument('--data', type=str, default=None,
+                       help='Path to data configuration file (overrides --dataset)')
     parser.add_argument('--batch-size', type=int, default=16,
                        help='Batch size for validation')
     parser.add_argument('--img-size', type=int, default=640,
@@ -25,12 +29,21 @@ def main():
     
     args = parser.parse_args()
     
+    # Resolve data config path
+    if args.data:
+        data_config = args.data
+    else:
+        # Build path to dataset's data.yaml
+        data_config = f"data/processed/{args.dataset}/data.yaml"
+    
+    print(f"Using data config: {data_config}")
+    
     # Load trained model
     model = YOLO(args.model)
     
     # Validate the model
     results = model.val(
-        data=args.data,
+        data=data_config,
         batch=args.batch_size,
         imgsz=args.img_size,
         device=args.device,

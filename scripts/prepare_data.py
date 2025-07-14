@@ -6,10 +6,10 @@ Supports multiple datasets and custom train/val/test splits
 
 import os
 import sys
-import shutil
 import json
-import random
+import shutil
 from pathlib import Path
+import random
 import argparse
 
 # Add the parent directory to the path so we can import utils
@@ -154,22 +154,28 @@ def create_dataset_config(dataset_dir: str, dataset_name: str, source_dir: str):
         except:
             pass
     
-    # Create dataset config
-    config = {
-        'name': dataset_name,
-        'path': dataset_dir,
-        'train': os.path.join(dataset_dir, 'train', 'images'),
-        'val': os.path.join(dataset_dir, 'val', 'images'),
-        'test': os.path.join(dataset_dir, 'test', 'images'),
+    # Create paths relative to project root (not absolute paths)
+    # Convert absolute dataset_dir to relative path from project root
+    project_root = Path.cwd()
+    dataset_path = Path(dataset_dir)
+    relative_dataset_path = dataset_path.relative_to(project_root)
+    
+    # Create YOLO-compatible configuration
+    yolo_config = {
+        'train': 'train/images',
+        'val': 'val/images', 
+        'test': 'test/images',
         'nc': len(class_names),
-        'names': class_names
+        'names': [class_names[i] for i in sorted(class_names.keys())]  # Convert to list format
     }
     
-    # Save config
-    config_file = os.path.join(dataset_dir, 'dataset_config.yaml')
+    # Save configuration
     from utils.data_utils import save_yaml
-    save_yaml(config, config_file)
-    print(f"Created dataset configuration: {config_file}")
+    
+    # Save YOLO-compatible data.yaml
+    data_config_file = os.path.join(dataset_dir, 'data.yaml')
+    save_yaml(yolo_config, data_config_file)
+    print(f"Created YOLO dataset configuration: {data_config_file}")
 
 def main():
     parser = argparse.ArgumentParser(description='Prepare dataset for YOLO11 training')
