@@ -193,4 +193,4 @@ Thumbs.db
 *~
 
 # Labeled images
-labeled_images/*
+data/*
