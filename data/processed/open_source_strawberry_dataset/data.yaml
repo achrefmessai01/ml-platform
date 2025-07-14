@@ -1,0 +1,11 @@
+names:
+- Early-Turning
+- Green-Strawberry
+- Late-Turning
+- Red-Turning
+- Turning
+- White-Strawberry
+nc: 6
+test: test/images
+train: train/images
+val: val/images

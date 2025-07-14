@@ -1,0 +1,35 @@
+{
+  "source_dataset": "data/processed/strawberry_disease_dataset",
+  "target_dataset": "data/processed/open_source_strawberry_dataset",
+  "class_filter": "Early-Turning,Green-Strawberry,White-Strawberry,Turning,Late-Turning,Red-Turning",
+  "allowed_classes": [
+    2,
+    4,
+    5,
+    9,
+    10,
+    11
+  ],
+  "class_names": {
+    "2": "Early-Turning",
+    "4": "Green-Strawberry",
+    "5": "Late-Turning",
+    "9": "Red-Turning",
+    "10": "Turning",
+    "11": "White-Strawberry"
+  },
+  "remap_classes": true,
+  "class_id_mapping": {
+    "2": 0,
+    "4": 1,
+    "5": 2,
+    "9": 3,
+    "10": 4,
+    "11": 5
+  },
+  "statistics": {
+    "total_images": 9730,
+    "kept_images": 5122,
+    "kept_annotations": 14059
+  }
+}
