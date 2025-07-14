@@ -34,6 +34,8 @@ def main():
                        help='Experiment name')
     parser.add_argument('--tensorboard', action='store_true',
                        help='Enable TensorBoard logging during training')
+    parser.add_argument('--patience', type=int, default=10,
+                       help='Early stopping patience (number of epochs with no improvement)')
     
     args = parser.parse_args()
     
@@ -64,6 +66,7 @@ def main():
         device=args.device,
         project=args.project,
         name=args.name,
+        patience=args.patience,
         save=True,
         save_period=10,  # Save checkpoint every 10 epochs
         verbose=True
