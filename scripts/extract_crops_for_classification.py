@@ -49,10 +49,14 @@ class ClassificationCropExtractor:
         
         # Crop settings
         self.crop_size = config.get('crop_size', None)  # (width, height) or None for original
-        self.padding = config.get('padding', 0.1)  # Extra padding around bbox (0.1 = 10%)
-        self.min_crop_size = config.get('min_crop_size', 32)  # Minimum crop size
+        # Handle string "None" or "null" values in YAML
+        if isinstance(self.crop_size, str) and self.crop_size.lower() in ['none', 'null']:
+            self.crop_size = None
+        self.padding = config.get('padding', 0.1)  # Default padding around bbox (0.1 = 10%)
+        self.class_padding = config.get('class_padding', {})  # Class-specific padding overrides
+        self.min_crop_size = config.get('min_crop_size', 0)  # Minimum crop size
         self.save_format = config.get('save_format', 'JPEG')
-        self.quality = config.get('quality', 95)
+        self.quality = config.get('quality', 100)
         
         # Split and label settings
         self.preserve_splits = config.get('preserve_splits', True)  # Preserve train/val/test splits
@@ -161,13 +165,16 @@ class ClassificationCropExtractor:
         
         return class_id, x1, y1, x2, y2
     
-    def _apply_padding(self, x1: int, y1: int, x2: int, y2: int, img_width: int, img_height: int) -> Tuple[int, int, int, int]:
-        """Apply padding to bounding box"""
+    def _apply_padding(self, x1: int, y1: int, x2: int, y2: int, img_width: int, img_height: int, class_name: str) -> Tuple[int, int, int, int]:
+        """Apply padding to bounding box (class-specific or default)"""
+        # Get padding for this specific class, fall back to default padding
+        padding = self.class_padding.get(class_name, self.padding)
+        
         width = x2 - x1
         height = y2 - y1
         
-        pad_x = int(width * self.padding)
-        pad_y = int(height * self.padding)
+        pad_x = int(width * padding)
+        pad_y = int(height * padding)
         
         x1 = max(0, x1 - pad_x)
         y1 = max(0, y1 - pad_y)
@@ -245,8 +252,8 @@ class ClassificationCropExtractor:
                 if self.include_labels and class_name not in self.include_labels:
                     continue
                 
-                # Apply padding
-                x1, y1, x2, y2 = self._apply_padding(x1, y1, x2, y2, img_width, img_height)
+                # Apply padding (class-specific)
+                x1, y1, x2, y2 = self._apply_padding(x1, y1, x2, y2, img_width, img_height, class_name)
                 
                 # Check minimum crop size
                 crop_width = x2 - x1
@@ -302,6 +309,11 @@ class ClassificationCropExtractor:
         logger.info(f"Output directory: {self.output_dir}")
         logger.info(f"Preserve splits: {self.preserve_splits}")
         logger.info(f"Merge labels: {self.merge_labels}")
+        logger.info(f"Default padding: {self.padding}")
+        if self.class_padding:
+            logger.info("Class-specific padding:")
+            for class_name, padding in self.class_padding.items():
+                logger.info(f"  {class_name}: {padding}")
         if self.merge_labels:
             logger.info(f"Merged label name: {self.merged_label_name}")
         if self.include_labels:
@@ -384,10 +396,11 @@ def create_config_template():
         'dataset_path': 'data/processed/farm_dataset',
         'output_dir': 'data/classification/big_dataset',
         'crop_size': None,  # [width, height] or null for original size
-        'padding': 0.1,  # Extra padding around bbox (0.1 = 10%)
-        'min_crop_size': 32,  # Minimum crop size in pixels
+        'padding': 0.1,  # Default padding around bbox (0.1 = 10%)
+        'class_padding': {},  # Class-specific padding overrides
+        'min_crop_size': 0,  # Minimum crop size in pixels
         'save_format': 'JPEG',  # JPEG or PNG
-        'quality': 95,  # JPEG quality (1-100)
+        'quality': 100,  # JPEG quality (1-100)
         'preserve_splits': True,  # Preserve train/val/test splits
         'merge_labels': False,  # Merge all labels into one class
         'merged_label_name': 'strawberry',  # Name for merged class (when merge_labels=True)
@@ -396,7 +409,31 @@ def create_config_template():
     
     config_path = 'crop_extraction_config.yaml'
     with open(config_path, 'w') as f:
-        yaml.dump(config_template, f, default_flow_style=False)
+        # Write the config with custom formatting to include examples
+        f.write("# Crop Extraction Configuration\n")
+        f.write("# This file configures the crop extraction script\n\n")
+        
+        f.write(f"dataset_path: '{config_template['dataset_path']}'\n")
+        f.write(f"output_dir: '{config_template['output_dir']}'\n\n")
+        
+        f.write("# Crop settings\n")
+        f.write(f"crop_size: null  # [width, height] or null for original size\n")
+        f.write(f"padding: {config_template['padding']}  # Default padding around bbox (0.1 = 10%)\n")
+        f.write("class_padding:  # Class-specific padding overrides\n")
+        f.write("  # Flower: 0.2        # 20% padding for flowers\n")
+        f.write("  # Red_Fruit: 0.05    # 5% padding for red fruits\n")
+        f.write("  # Green_Fruit: 0.15  # 15% padding for green fruits\n")
+        f.write(f"min_crop_size: {config_template['min_crop_size']}  # Minimum crop size in pixels\n\n")
+        
+        f.write("# Output settings\n")
+        f.write(f"save_format: '{config_template['save_format']}'\n")
+        f.write(f"quality: {config_template['quality']}  # JPEG quality (1-100)\n\n")
+        
+        f.write("# Dataset organization\n")
+        f.write(f"preserve_splits: {str(config_template['preserve_splits']).lower()}\n")
+        f.write(f"merge_labels: {str(config_template['merge_labels']).lower()}\n")
+        f.write(f"merged_label_name: '{config_template['merged_label_name']}'\n")
+        f.write(f"include_labels: {config_template['include_labels']}  # List of labels to include (null = all labels)\n")
     
     print(f"Configuration template created: {config_path}")
     return config_path
@@ -407,7 +444,8 @@ def main():
     parser.add_argument('--dataset_path', type=str, help='Path to YOLO dataset')
     parser.add_argument('--output_dir', type=str, help='Output directory for classification dataset')
     parser.add_argument('--crop_size', type=str, help='Target crop size as WIDTHxHEIGHT (e.g., 224x224)')
-    parser.add_argument('--padding', type=float, default=0, help='Extra padding around bbox (default: 0.1)')
+    parser.add_argument('--padding', type=float, default=0.1, help='Default padding around bbox (default: 0.1)')
+    parser.add_argument('--class_padding', type=str, nargs='+', help='Class-specific padding (e.g., --class_padding Flower=0.2 Red_Fruit=0.05)')
     parser.add_argument('--min_crop_size', type=int, default=0, help='Minimum crop size (default: 32)')
     parser.add_argument('--preserve_splits', action='store_true', default=True, help='Preserve train/val/test splits (default: True)')
     parser.add_argument('--no_preserve_splits', action='store_false', dest='preserve_splits', help='Do not preserve train/val/test splits')
@@ -439,6 +477,20 @@ def main():
         config['crop_size'] = [width, height]
     if args.padding is not None:
         config['padding'] = args.padding
+    if args.class_padding is not None:
+        class_padding = {}
+        for class_pad in args.class_padding:
+            if '=' in class_pad:
+                class_name, padding_str = class_pad.split('=', 1)
+                try:
+                    padding_value = float(padding_str)
+                    class_padding[class_name] = padding_value
+                except ValueError:
+                    logger.warning(f"Invalid padding value for class {class_name}: {padding_str}")
+            else:
+                logger.warning(f"Invalid class padding format: {class_pad}. Expected format: ClassName=0.1")
+        if class_padding:
+            config['class_padding'] = class_padding
     if args.min_crop_size is not None:
         config['min_crop_size'] = args.min_crop_size
     if 'preserve_splits' not in config:
