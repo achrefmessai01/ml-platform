@@ -25,6 +25,7 @@ visualizations/
 # Dataset files (keep structure but ignore actual data)
 data/datasets/*
 data/processed/*
+data/classification/*
 
 # Compressed files
 *.zip
