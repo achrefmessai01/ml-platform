@@ -46,17 +46,27 @@ def main():
     # Load class names from config
     if os.path.exists(args.config):
         config = load_yaml(args.config)
-        class_names = config.get('names', {})
+        class_names = config.get('names', [])
         print(f"\nClass Names:")
-        for class_id, class_name in class_names.items():
-            print(f"  {class_id}: {class_name}")
+        if isinstance(class_names, list):
+            for class_id, class_name in enumerate(class_names):
+                print(f"  {class_id}: {class_name}")
+        elif isinstance(class_names, dict):
+            for class_id, class_name in class_names.items():
+                print(f"  {class_id}: {class_name}")
+        else:
+            print(f"  Warning: Unexpected class names format: {type(class_names)}")
     else:
         print(f"\nWarning: Config file not found: {args.config}")
-        class_names = {}
+        class_names = []
     
     # Visualize samples if requested
     if args.visualize and class_names:
         print(f"\nVisualizing {args.num_samples} sample annotations...")
+        
+        # Create visualizations directory if it doesn't exist
+        visualizations_dir = "visualizations"
+        os.makedirs(visualizations_dir, exist_ok=True)
         
         # Get sample images from training set
         train_images_dir = os.path.join(args.data_dir, 'train', 'images')
@@ -66,14 +76,24 @@ def main():
             from utils.data_utils import get_image_paths
             
             image_paths = get_image_paths(train_images_dir)[:args.num_samples]
-            class_names_list = [class_names.get(i, f'class_{i}') for i in range(len(class_names))]
+            
+            # Convert class_names to list format
+            if isinstance(class_names, list):
+                class_names_list = class_names
+            elif isinstance(class_names, dict):
+                class_names_list = [class_names.get(i, f'class_{i}') for i in range(len(class_names))]
+            else:
+                class_names_list = []
             
             for i, image_path in enumerate(image_paths):
                 image_name = os.path.basename(image_path)
                 label_name = os.path.splitext(image_name)[0] + '.txt'
                 label_path = os.path.join(train_labels_dir, label_name)
                 
-                output_path = f"visualization_sample_{i+1}.jpg"
+                # Use original image name with validation prefix
+                image_stem = os.path.splitext(image_name)[0]
+                image_ext = os.path.splitext(image_name)[1]
+                output_path = os.path.join(visualizations_dir, f"validation_{image_stem}.jpg")
                 
                 try:
                     visualize_annotations(image_path, label_path, class_names_list, output_path)
