@@ -1,8 +1,8 @@
 # Crop Extraction Configuration
 # This file configures the crop extraction script
 
-dataset_path: 'data/processed/farm_dataset'
-output_dir: 'data/classification/farm_dataset_test'
+dataset_path: 'data/processed/farm_dataset_obb'
+output_dir: 'data/classification/farm_dataset_obb'
 
 # Crop settings
 crop_size: null  # [width, height] or null for original size

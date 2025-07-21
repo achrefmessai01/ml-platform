@@ -7,12 +7,18 @@ classification datasets. It reads YOLO format annotations and crops the images
 according to the bounding boxes, saving them organized by class.
 
 Features:
-- Supports YOLO format datasets
+- Supports YOLO format datasets (AABB and OBB)
+- Auto-detects annotation format (5 values = AABB, 8+ values = OBB)
 - Configurable output directory structure
 - Handles multiple classes
 - Optional image resizing and padding
 - Progress tracking
 - Detailed logging
+- Oriented bounding box support with perspective transformation
+
+Supported Formats:
+- AABB: class_id x_center y_center width height
+- OBB: class_id x1 y1 x2 y2 x3 y3 x4 y4
 
 Usage:
     python scripts/extract_crops_for_classification.py --config config.yaml
@@ -70,7 +76,10 @@ class ClassificationCropExtractor:
             'total_crops': 0,
             'crops_per_class': {},
             'crops_per_split': {'train': 0, 'val': 0, 'test': 0} if self.preserve_splits else {},
-            'skipped_crops': 0
+            'skipped_crops': 0,
+            'aabb_count': 0,  # Count of axis-aligned bounding boxes
+            'obb_count': 0,   # Count of oriented bounding boxes
+            'annotation_format': None  # Will be detected: 'AABB', 'OBB', or 'MIXED'
         }
         
         # Create output directories
@@ -165,6 +174,101 @@ class ClassificationCropExtractor:
         
         return class_id, x1, y1, x2, y2
     
+    def _parse_obb_annotation(self, annotation_line: str, img_width: int, img_height: int) -> Tuple[int, np.ndarray]:
+        """Parse oriented bounding box annotation line"""
+        parts = annotation_line.strip().split()
+        class_id = int(parts[0])
+        
+        # Parse 4 corner points (8 coordinates)
+        points = []
+        for i in range(1, 9, 2):
+            x = float(parts[i]) * img_width
+            y = float(parts[i + 1]) * img_height
+            points.append([x, y])
+        
+        # Convert to numpy array
+        points = np.array(points, dtype=np.float32)
+        
+        return class_id, points
+    
+    def _detect_annotation_format(self, annotation_line: str) -> str:
+        """Detect if annotation is AABB (5 values) or OBB (9 values)"""
+        parts = annotation_line.strip().split()
+        if len(parts) == 5:
+            return 'AABB'
+        elif len(parts) == 9:
+            return 'OBB'
+        else:
+            raise ValueError(f"Invalid annotation format: expected 5 (AABB) or 9 (OBB) values, got {len(parts)}")
+    
+    def _extract_obb_crop(self, image: np.ndarray, points: np.ndarray, class_name: str) -> np.ndarray:
+        """Extract crop from oriented bounding box using perspective transformation"""
+        # Get padding for this specific class
+        padding = self.class_padding.get(class_name, self.padding)
+        
+        # Calculate bounding rectangle of the oriented box
+        x_min = np.min(points[:, 0])
+        x_max = np.max(points[:, 0])
+        y_min = np.min(points[:, 1])
+        y_max = np.max(points[:, 1])
+        
+        # Apply padding to bounding rectangle
+        width = x_max - x_min
+        height = y_max - y_min
+        pad_x = width * padding
+        pad_y = height * padding
+        
+        # Expand points outward from center
+        center_x = (x_min + x_max) / 2
+        center_y = (y_min + y_max) / 2
+        
+        # Apply padding by scaling points from center
+        scale_x = (width + 2 * pad_x) / width
+        scale_y = (height + 2 * pad_y) / height
+        
+        padded_points = points.copy()
+        for i in range(4):
+            # Scale from center
+            padded_points[i, 0] = center_x + (points[i, 0] - center_x) * scale_x
+            padded_points[i, 1] = center_y + (points[i, 1] - center_y) * scale_y
+        
+        # Ensure points are within image bounds
+        img_height, img_width = image.shape[:2]
+        padded_points[:, 0] = np.clip(padded_points[:, 0], 0, img_width - 1)
+        padded_points[:, 1] = np.clip(padded_points[:, 1], 0, img_height - 1)
+        
+        # Calculate dimensions of the oriented bounding box
+        # Use the original points (before padding) to maintain aspect ratio
+        edge1 = np.linalg.norm(points[1] - points[0])
+        edge2 = np.linalg.norm(points[2] - points[1])
+        
+        # Determine output dimensions (add padding)
+        out_width = int(edge1 + 2 * pad_x)
+        out_height = int(edge2 + 2 * pad_y)
+        
+        # Define destination rectangle (with padding included)
+        dst_points = np.array([
+            [0, 0],
+            [out_width - 1, 0],
+            [out_width - 1, out_height - 1],
+            [0, out_height - 1]
+        ], dtype=np.float32)
+        
+        # Calculate perspective transformation matrix
+        try:
+            transform_matrix = cv2.getPerspectiveTransform(padded_points, dst_points)
+            
+            # Apply perspective transformation
+            crop = cv2.warpPerspective(image, transform_matrix, (out_width, out_height))
+            
+            return crop
+        except cv2.error as e:
+            logger.warning(f"Failed to apply perspective transformation: {e}")
+            # Fallback: extract axis-aligned bounding box
+            x1, y1 = int(np.min(padded_points[:, 0])), int(np.min(padded_points[:, 1]))
+            x2, y2 = int(np.max(padded_points[:, 0])), int(np.max(padded_points[:, 1]))
+            return image[y1:y2, x1:x2]
+    
     def _apply_padding(self, x1: int, y1: int, x2: int, y2: int, img_width: int, img_height: int, class_name: str) -> Tuple[int, int, int, int]:
         """Apply padding to bounding box (class-specific or default)"""
         # Get padding for this specific class, fall back to default padding
@@ -243,28 +347,76 @@ class ClassificationCropExtractor:
                 continue
             
             try:
-                class_id, x1, y1, x2, y2 = self._parse_yolo_annotation(annotation, img_width, img_height)
+                # Detect annotation format
+                format_type = self._detect_annotation_format(annotation)
                 
-                # Get class name
-                class_name = self.class_names[class_id]
+                # Update format statistics
+                if format_type == 'AABB':
+                    self.stats['aabb_count'] += 1
+                elif format_type == 'OBB':
+                    self.stats['obb_count'] += 1
                 
-                # Skip if not in include_labels (when include_labels is specified)
-                if self.include_labels and class_name not in self.include_labels:
-                    continue
+                # Set overall format detection
+                if self.stats['annotation_format'] is None:
+                    self.stats['annotation_format'] = format_type
+                elif self.stats['annotation_format'] != format_type:
+                    self.stats['annotation_format'] = 'MIXED'
                 
-                # Apply padding (class-specific)
-                x1, y1, x2, y2 = self._apply_padding(x1, y1, x2, y2, img_width, img_height, class_name)
+                # Initialize variables
+                crop = None
+                class_name = None
                 
-                # Check minimum crop size
-                crop_width = x2 - x1
-                crop_height = y2 - y1
-                if crop_width < self.min_crop_size or crop_height < self.min_crop_size:
-                    self.stats['skipped_crops'] += 1
-                    continue
+                # Parse annotation based on format
+                if format_type == 'AABB':
+                    class_id, x1, y1, x2, y2 = self._parse_yolo_annotation(annotation, img_width, img_height)
+                    
+                    # Get class name
+                    class_name = self.class_names[class_id]
+                    
+                    # Skip if not in include_labels (when include_labels is specified)
+                    if self.include_labels and class_name not in self.include_labels:
+                        continue
+                    
+                    # Apply padding (class-specific)
+                    x1, y1, x2, y2 = self._apply_padding(x1, y1, x2, y2, img_width, img_height, class_name)
+                    
+                    # Check minimum crop size
+                    crop_width = x2 - x1
+                    crop_height = y2 - y1
+                    if crop_width < self.min_crop_size or crop_height < self.min_crop_size:
+                        self.stats['skipped_crops'] += 1
+                        continue
+                    
+                    # Extract crop
+                    crop = image[y1:y2, x1:x2]
+                    if crop.size == 0:
+                        self.stats['skipped_crops'] += 1
+                        continue
                 
-                # Extract crop
-                crop = image[y1:y2, x1:x2]
-                if crop.size == 0:
+                elif format_type == 'OBB':
+                    class_id, points = self._parse_obb_annotation(annotation, img_width, img_height)
+                    
+                    # Get class name
+                    class_name = self.class_names[class_id]
+                    
+                    # Skip if not in include_labels (when include_labels is specified)
+                    if self.include_labels and class_name not in self.include_labels:
+                        continue
+                    
+                    # Extract oriented crop with padding
+                    crop = self._extract_obb_crop(image, points, class_name)
+                    if crop is None or crop.size == 0:
+                        self.stats['skipped_crops'] += 1
+                        continue
+                    
+                    # Check minimum crop size
+                    crop_height, crop_width = crop.shape[:2]
+                    if crop_width < self.min_crop_size or crop_height < self.min_crop_size:
+                        self.stats['skipped_crops'] += 1
+                        continue
+                
+                # Skip if crop or class_name wasn't set (shouldn't happen)
+                if crop is None or class_name is None:
                     self.stats['skipped_crops'] += 1
                     continue
                 
@@ -277,8 +429,9 @@ class ClassificationCropExtractor:
                 else:
                     output_class_name = class_name
                 
-                # Generate output filename
-                output_filename = f"{image_name}_crop_{crop_count:03d}.jpg"
+                # Generate output filename with format indicator
+                format_suffix = 'aabb' if format_type == 'AABB' else 'obb'
+                output_filename = f"{image_name}_crop_{crop_count:03d}_{format_suffix}.jpg"
                 
                 # Determine output directory based on split preservation
                 if self.preserve_splits and split:
@@ -365,6 +518,13 @@ class ClassificationCropExtractor:
         logger.info(f"Total crops extracted: {self.stats['total_crops']}")
         logger.info(f"Skipped crops: {self.stats['skipped_crops']}")
         
+        # Annotation format statistics
+        logger.info(f"\nAnnotation format detected: {self.stats['annotation_format']}")
+        if self.stats['aabb_count'] > 0:
+            logger.info(f"Axis-aligned bounding boxes (AABB): {self.stats['aabb_count']}")
+        if self.stats['obb_count'] > 0:
+            logger.info(f"Oriented bounding boxes (OBB): {self.stats['obb_count']}")
+        
         if self.preserve_splits:
             logger.info("\nCrops per split:")
             for split, count in self.stats['crops_per_split'].items():
@@ -389,6 +549,13 @@ class ClassificationCropExtractor:
             logger.info(f"  {self.output_dir}/")
             for class_name in self.stats['crops_per_class'].keys():
                 logger.info(f"  └── {class_name}/")
+        
+        # Additional info for OBB support
+        if self.stats['obb_count'] > 0:
+            logger.info(f"\n💡 Oriented bounding box support:")
+            logger.info(f"   • OBB crops extracted using perspective transformation")
+            logger.info(f"   • Padding applied by scaling from object center")
+            logger.info(f"   • Filenames include '_obb' suffix for identification")
 
 def create_config_template():
     """Create a configuration template"""
@@ -439,7 +606,7 @@ def create_config_template():
     return config_path
 
 def main():
-    parser = argparse.ArgumentParser(description='Extract crops for classification from object detection dataset')
+    parser = argparse.ArgumentParser(description='Extract crops for classification from object detection dataset (supports AABB and OBB)')
     parser.add_argument('--config', type=str, help='Configuration file path')
     parser.add_argument('--dataset_path', type=str, help='Path to YOLO dataset')
     parser.add_argument('--output_dir', type=str, help='Output directory for classification dataset')
