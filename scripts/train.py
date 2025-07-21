@@ -87,16 +87,6 @@ def main():
     print(f"Loading model: {model_name}")
     model = YOLO(model_name)
     
-    # Enable TensorBoard logging if requested
-    if args.tensorboard:
-        try:
-            import tensorboard  # noqa: F401
-            print("📈 TensorBoard logging enabled - logs will be saved automatically")
-        except ImportError:
-            print("⚠️  TensorBoard not found, installing...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "tensorboard"], check=True)
-            print("✅ TensorBoard installed successfully!")
-    
     # Prepare training arguments based on task
     train_kwargs = {
         'data': args.data,
@@ -111,6 +101,12 @@ def main():
         'verbose': True,
         # 'freeze': 9
     }
+    
+    # TensorBoard logging info
+    if args.tensorboard:
+        print(f"📈 TensorBoard logging: YOLO11 will automatically create logs if TensorBoard is installed")
+        print(f"� Logs will be saved to: {args.project}/{args.name}/")
+        print("💡 Run 'tensorboard --logdir=runs/train' to view logs after training starts")
     
     # Add task-specific parameters
     if args.task == 'classify':
