@@ -10,6 +10,7 @@ from typing import List, Tuple, Dict, Optional, Any
 
 try:
     import cv2
+    import numpy as np
     CV2_AVAILABLE = True
 except ImportError:
     CV2_AVAILABLE = False
@@ -87,7 +88,7 @@ def convert_bbox_format(bbox: List[float], img_width: int, img_height: int,
 def visualize_annotations(image_path: str, label_path: str, class_names: List[str], 
                          output_path: Optional[str] = None) -> Any:
     """
-    Visualize YOLO annotations on an image
+    Visualize YOLO annotations on an image (supports both regular bbox and OBB)
     
     Args:
         image_path: Path to the image file
@@ -117,19 +118,45 @@ def visualize_annotations(image_path: str, label_path: str, class_names: List[st
             parts = annotation.strip().split()
             if len(parts) >= 5:
                 class_id = int(parts[0])
-                bbox = [float(x) for x in parts[1:5]]
                 
-                # Convert YOLO format to XYXY
-                x1, y1, x2, y2 = convert_bbox_format(bbox, img_width, img_height, 'yolo', 'xyxy')
+                # Check if this is OBB format (9 values: class + 8 coordinates)
+                if len(parts) == 9:
+                    # YOLO OBB format: class_id x1 y1 x2 y2 x3 y3 x4 y4 (normalized)
+                    coords = [float(x) for x in parts[1:9]]
+                    
+                    # Convert normalized coordinates to absolute pixels
+                    points = []
+                    for i in range(0, 8, 2):
+                        x = int(coords[i] * img_width)
+                        y = int(coords[i + 1] * img_height)
+                        points.append((x, y))
+                    
+                    # Draw oriented bounding box
+                    pts = np.array(points, np.int32)
+                    cv2.polylines(image, [pts], True, (0, 255, 0), 2)
+                    
+                    # Draw class label at first point
+                    if class_id < len(class_names):
+                        label = class_names[class_id]
+                        cv2.putText(image, label, points[0], 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 
-                # Draw bounding box
-                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                
-                # Draw class label
-                if class_id < len(class_names):
-                    label = class_names[class_id]
-                    cv2.putText(image, label, (x1, y1 - 10), 
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                elif len(parts) >= 5:
+                    # Regular YOLO bbox format: class_id x_center y_center width height (normalized)
+                    bbox = [float(x) for x in parts[1:5]]
+                    
+                    # Convert YOLO format to XYXY
+                    x1, y1, x2, y2 = convert_bbox_format(bbox, img_width, img_height, 'yolo', 'xyxy')
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                    
+                    # Draw bounding box
+                    cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    
+                    # Draw class label
+                    if class_id < len(class_names):
+                        label = class_names[class_id]
+                        cv2.putText(image, label, (x1, y1 - 10), 
+                                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     
     # Save visualization if output path is provided
     if output_path:
