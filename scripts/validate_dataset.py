@@ -60,6 +60,31 @@ def main():
         print(f"\nWarning: Config file not found: {args.config}")
         class_names = []
     
+    # Detect annotation format by checking a sample label file
+    annotation_format = "unknown"
+    sample_label_path = None
+    for split in ['train', 'val', 'test']:
+        labels_dir = os.path.join(args.data_dir, split, 'labels')
+        if os.path.exists(labels_dir):
+            label_files = list(os.listdir(labels_dir))
+            if label_files:
+                sample_label_path = os.path.join(labels_dir, label_files[0])
+                break
+    
+    if sample_label_path and os.path.exists(sample_label_path):
+        with open(sample_label_path, 'r') as f:
+            first_line = f.readline().strip()
+            if first_line:
+                parts = first_line.split()
+                if len(parts) == 5:
+                    annotation_format = "YOLO bbox (regular)"
+                elif len(parts) == 9:
+                    annotation_format = "YOLO OBB (oriented bounding box)"
+                else:
+                    annotation_format = f"unknown ({len(parts)} values)"
+    
+    print(f"\nAnnotation Format: {annotation_format}")
+    
     # Visualize samples if requested
     if args.visualize and class_names:
         print(f"\nVisualizing {args.num_samples} sample annotations...")
