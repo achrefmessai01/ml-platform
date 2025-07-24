@@ -38,6 +38,10 @@ def main():
                        help='Enable TensorBoard logging during training')
     parser.add_argument('--patience', type=int, default=10,
                        help='Early stopping patience (number of epochs with no improvement)')
+    parser.add_argument('--single-cls', type=bool, default=False,
+                       help='Use single class training (for classification tasks)')
+    parser.add_argument('--resume', type=bool, default=False,
+                       help='Resume training from last checkpoint if available')
     
     args = parser.parse_args()
     
@@ -97,8 +101,11 @@ def main():
         'project': args.project,
         'name': args.name,
         'patience': args.patience,
+        'single_cls': args.single_cls,
+        'resume': args.resume,  # Resume training if last checkpoint exists
         'save': True,
         'verbose': True,
+        'workers': 4,  # Reduce number of workers to prevent segmentation fault
         # 'freeze': 9
     }
     
