@@ -6,8 +6,8 @@ output_dir: 'data/classification/farm_dataset_obb'
 
 # Crop settings
 crop_size: null  # [width, height] or null for original size
-padding: 0.1  # Default padding around bbox (0.1 = 10%)
-class_padding:  # Class-specific padding overrides
+padding: 0.1
+class_padding:
   Green_Fruit: 0.2
   Flower_Fruit: 0.3
 
