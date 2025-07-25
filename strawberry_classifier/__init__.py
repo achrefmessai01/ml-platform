@@ -18,6 +18,10 @@ from .data import (
     merge_datasets,
     create_subset
 )
+from .visualization import (
+    plot_yolo_obb,
+    plot_detections_with_obb
+)
 
 __all__ = [
     "StrawberryDetector", 

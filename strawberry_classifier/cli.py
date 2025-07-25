@@ -11,6 +11,7 @@ from .data.color_transfer import apply_color_transfer_to_dataset
 from .data.analyzer import compare_datasets, analyze_dataset
 from .data.validator import validate_dataset
 from .data.dataset_ops import merge_datasets, create_subset
+from .visualization.plot_utils import visualize_dataset_obb_samples
 
 
 def prepare_data_command(args):
@@ -160,6 +161,21 @@ def merge_datasets_command(args):
     print(f"  Classes: {stats['classes']}")
 
 
+def visualize_obb_command(args):
+    """Visualize oriented bounding boxes command"""
+    visualize_dataset_obb_samples(
+        dataset_path=args.dataset,
+        num_samples=args.num_samples,
+        split=args.split,
+        save_path=args.output if args.save else None,
+        figsize=(args.width, args.height)
+    )
+    if args.save:
+        print(f"OBB visualization saved to: {args.output}")
+    else:
+        print("OBB visualization displayed")
+
+
 def create_subset_command(args):
     """Create subset command"""
     stats = create_subset(
@@ -295,6 +311,16 @@ def create_parser():
     subset_parser.add_argument('--ratio', type=float, default=0.1, help='Subset ratio')
     subset_parser.add_argument('--seed', type=int, default=42, help='Random seed')
     
+    # Visualization commands
+    visualize_parser = subparsers.add_parser('visualize-obb', help='Visualize oriented bounding boxes')
+    visualize_parser.add_argument('--dataset', required=True, help='Path to OBB dataset')
+    visualize_parser.add_argument('--split', default='train', choices=['train', 'val', 'test'], help='Dataset split to visualize')
+    visualize_parser.add_argument('--num-samples', type=int, default=6, help='Number of samples to visualize')
+    visualize_parser.add_argument('--output', help='Output path for saved visualization')
+    visualize_parser.add_argument('--save', action='store_true', help='Save visualization instead of displaying')
+    visualize_parser.add_argument('--width', type=int, default=15, help='Figure width')
+    visualize_parser.add_argument('--height', type=int, default=10, help='Figure height')
+    
     # Model training and inference commands
     train_parser = subparsers.add_parser('train', help='Train model')
     train_parser.add_argument('--model', default='yolo11n.pt', help='Model path or name')
@@ -355,6 +381,8 @@ def main():
             merge_datasets_command(args)
         elif args.command == 'create-subset':
             create_subset_command(args)
+        elif args.command == 'visualize-obb':
+            visualize_obb_command(args)
         elif args.command == 'train':
             train_command(args)
         elif args.command == 'predict':
