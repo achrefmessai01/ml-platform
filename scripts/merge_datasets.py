@@ -195,9 +195,9 @@ def merge_datasets(dataset1_path: str, dataset2_path: str, output_path: str):
 
 def main():
     parser = argparse.ArgumentParser(description='Merge two YOLO datasets')
-    parser.add_argument('dataset1', help='Path to first dataset directory')
-    parser.add_argument('dataset2', help='Path to second dataset directory')
-    parser.add_argument('output', help='Path to output merged dataset directory')
+    parser.add_argument('--dataset1', help='Path to first dataset directory')
+    parser.add_argument('--dataset2', help='Path to second dataset directory')
+    parser.add_argument('--output', help='Path to output merged dataset directory')
     
     args = parser.parse_args()
     
