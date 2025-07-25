@@ -8,14 +8,82 @@ import argparse
 import os
 import sys
 import subprocess
+import yaml
 from pathlib import Path
 
 # Set local cache directories to avoid global downloads
 PROJECT_ROOT = Path(__file__).parent.parent
 os.environ['TORCH_HOME'] = str(PROJECT_ROOT / 'models' / 'cache')
 
+def load_config(config_path):
+    """Load training configuration from a YAML file."""
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        print(f"📄 Loaded configuration from: {config_path}")
+        return config
+    except FileNotFoundError:
+        raise ValueError(f"Configuration file not found: {config_path}")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing configuration file: {e}")
+
+def merge_config_with_args(config, args):
+    """Merge configuration file parameters with command line arguments.
+    Command line arguments take precedence over config file parameters.
+    """
+    # Convert args namespace to dict
+    args_dict = vars(args)
+    
+    # Start with config parameters
+    merged_config = config.copy() if config else {}
+    
+    # Override with command line arguments (only if they were explicitly provided)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', type=str, help='Path to training configuration file (YAML)')
+    parser.add_argument('--model', type=str, default='yolo11n.pt')
+    parser.add_argument('--data', type=str, default='data/processed/farm_dataset/data.yaml')
+    parser.add_argument('--task', type=str, choices=['detect', 'classify'], default='detect')
+    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--img-size', type=int, default=640)
+    parser.add_argument('--device', type=str, default='')
+    parser.add_argument('--project', type=str, default='runs/train')
+    parser.add_argument('--name', type=str, default='strawberry_classifier')
+    parser.add_argument('--tensorboard', action='store_true')
+    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--single-cls', type=bool, default=False)
+    parser.add_argument('--resume', type=bool, default=False)
+    
+    # Get defaults
+    defaults = vars(parser.parse_args([]))
+    
+    # Update merged config with non-default command line arguments
+    for key, value in args_dict.items():
+        if key != 'config' and (key not in defaults or value != defaults[key]):
+            # Convert underscores to hyphens for consistency with config file format
+            config_key = key.replace('_', '-')
+            merged_config[config_key] = value
+    
+    # Handle any extra parameters from config that aren't in the argument parser
+    # These will be passed directly to YOLO training
+    extra_params = {}
+    valid_args = set(defaults.keys())
+    # Create all valid argument variations (with underscores and hyphens)
+    valid_args_expanded = set(valid_args)
+    for key in list(valid_args):
+        valid_args_expanded.add(key.replace('-', '_'))
+        valid_args_expanded.add(key.replace('_', '-'))
+    
+    for key, value in merged_config.items():
+        normalized_key = key.replace('-', '_')
+        if normalized_key not in valid_args_expanded:
+            extra_params[key] = value
+    
+    return merged_config, extra_params
+
 def main():
     parser = argparse.ArgumentParser(description='Train YOLO11 model for strawberry detection or classification')
+    parser.add_argument('--config', type=str, help='Path to training configuration file (YAML)')
     parser.add_argument('--model', type=str, default='yolo11n.pt', 
                        help='Model variant (yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt)')
     parser.add_argument('--data', type=str, default='data/processed/farm_dataset/data.yaml',
@@ -44,6 +112,24 @@ def main():
                        help='Resume training from last checkpoint if available')
     
     args = parser.parse_args()
+    
+    # Load configuration from file if provided
+    config = None
+    if args.config:
+        config = load_config(args.config)
+    
+    # Merge configuration with command line arguments
+    merged_config, extra_params = merge_config_with_args(config, args)
+    
+    # Convert merged config back to namespace for compatibility
+    for key, value in merged_config.items():
+        # Convert hyphen keys to underscore attributes
+        attr_name = key.replace('-', '_')
+        if hasattr(args, attr_name):
+            setattr(args, attr_name, value)
+    
+    if config and args.config:
+        print(f"✅ Configuration loaded and merged. Extra YOLO parameters: {list(extra_params.keys()) if extra_params else 'None'}")
     
     # Ensure local cache directory exists
     cache_dir = PROJECT_ROOT / 'models' / 'cache'
@@ -108,6 +194,11 @@ def main():
         'workers': 4,  # Reduce number of workers to prevent segmentation fault
         # 'freeze': 9
     }
+    
+    # Add extra parameters from configuration file
+    if extra_params:
+        print(f"🔧 Adding extra parameters from config: {extra_params}")
+        train_kwargs.update(extra_params)
     
     # TensorBoard logging info
     if args.tensorboard:
