@@ -1,0 +1,10 @@
+model: "yolo11n.pt"
+data: "data/processed/farm_dataset/data.yaml"
+task: "detect"
+epochs: 100
+batch_size: 16
+imgsz: 640
+device: "auto"
+project: "runs/train"
+name: "detection_experiment"
+patience: 10

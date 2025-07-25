@@ -1,7 +1,0 @@
-Flower
-Flower_Fruit
-Green_Fruit
-Green_White_Fruit
-Red_Fruit
-UNSURE
-White_Red_Fruit

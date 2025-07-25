@@ -1,6 +1,8 @@
-# YOLO11 Object Detection Requirements
-ultralytics
+ultralytics>=8.0.0
 pyyaml>=5.4.0
 opencv-python>=4.5.0
 matplotlib>=3.3.0
-tqdm
+tqdm>=4.60.0
+numpy>=1.21.0
+Pillow>=8.0.0
+mlflow

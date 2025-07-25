@@ -1,0 +1,7 @@
+dataset_path: "data/processed/farm_dataset"
+output_dir: "data/classification/farm_dataset"
+crop_size: [224, 224]
+padding: 0.1
+min_crop_size: 32
+preserve_splits: true
+quality: 95
