@@ -65,7 +65,8 @@ strawberry-cli predict \
 strawberry-cli validate \
     --model runs/train/exp/weights/best.pt \
     --data data/processed/farm_dataset/data.yaml \
-    --task detect
+    --task detect \
+    --project runs/val/test
 ```
 
 #### Visualize Oriented Bounding Boxes
