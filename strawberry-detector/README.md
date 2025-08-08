@@ -77,7 +77,21 @@ python train.py configs/strawberry_config.py
 python test.py configs/strawberry_config.py work_dirs/strawberry_detector/latest.pth image.jpg --out result.jpg
 ```
 
-### 4. Dataset Visualization
+### 4. MLflow Experiment Tracking
+
+```bash
+# Start MLflow UI to view training metrics and logs
+source venv/bin/activate
+mlflow ui --backend-store-uri work_dirs/strawberry_detector/mlflow_logs --host 0.0.0.0 --port 5000
+```
+
+Then open http://localhost:5000 in your browser to view:
+- Training/validation metrics
+- Loss curves
+- Model parameters
+- Experiment comparisons
+
+### 5. Dataset Visualization
 
 ```bash
 # Visualize training sample
