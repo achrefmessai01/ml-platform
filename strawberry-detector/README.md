@@ -1,74 +1,101 @@
 # Strawberry Detector
 
-Barebones MMDetection fine-tuning project for strawberry detection.
+MMDetection-based strawberry detection project with 7 strawberry classes: Flower, Flower_Fruit, Green_Fruit, Green_White_Fruit, Red_Fruit, UNSURE, and White_Red_Fruit.
 
-## Structure
+## Project Structure
 ```
 ├── configs/
-│   └── strawberry_config.py    # Training configuration (MMDetection 3.x compatible)
-├── data/                       # Place your dataset here
-│   ├── train/                  # Training images
-│   ├── val/                    # Validation images
-│   ├── test/                   # Test images
-│   └── annotations/            # COCO format annotations
-│       ├── instances_train.json
-│       ├── instances_val.json
-│       └── instances_test.json
-├── work_dirs/                  # Training outputs and checkpoints
-├── train.py                    # Training script (MMDetection 3.x compatible)
+│   └── strawberry_config.py    # Training configuration (inherits from Faster R-CNN)
+├── split_coco_dataset.py       # Split and organize COCO datasets
+├── fix_coco_paths.py           # Fix broken image paths in COCO annotations
+├── visualize_coco.py           # Visualize COCO dataset samples with annotations
+├── train.py                    # Training script
 ├── test.py                     # Inference script
-├── visualize_coco.py           # COCO dataset visualization script
 └── requirements.txt            # Dependencies
 ```
 
-## Usage
+## Dataset Structure
+After processing with `split_coco_dataset.py`, your dataset should look like:
+```
+dataset_organized/
+├── annotations/
+│   ├── instances_train.json
+│   ├── instances_val.json
+│   └── instances_test.json
+├── train/                      # Training images
+├── val/                        # Validation images
+└── test/                       # Test images
+```
 
-1. Create virtual environment
+## Setup
+
+1. **Create virtual environment:**
 ```bash
 python -m venv venv
 source venv/bin/activate
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
-
 mim install mmengine
-
 mim install "mmcv>=2.0.0"
-
 mim install mmdet
 ```
 
-3. Prepare your dataset in COCO format in the `data/` directory
+## Usage
 
-4. Train the model:
+### 1. Dataset Preparation
+
+**Split your COCO dataset:**
+```bash
+# Split dataset into train/val/test (70/20/10) and organize images
+python split_coco_dataset.py /path/to/your/dataset_directory
+
+# Custom ratios
+python split_coco_dataset.py /path/to/dataset --train-ratio 0.8 --val-ratio 0.15 --test-ratio 0.05
+```
+
+**Fix broken annotation paths (if needed):**
+```bash
+# Preview what would be fixed
+python fix_coco_paths.py annotations.json images/ --dry-run
+
+# Fix paths in annotation file
+python fix_coco_paths.py annotations.json images/
+```
+
+### 2. Training
+
 ```bash
 python train.py configs/strawberry_config.py
 ```
 
-5. Test inference:
+### 3. Inference
+
 ```bash
 python test.py configs/strawberry_config.py work_dirs/strawberry_detector/latest.pth image.jpg --out result.jpg
 ```
 
-6. Visualize dataset samples:
-```bash
-python visualize_coco.py configs/strawberry_config.py --split val --idx 0 --out-file sample_viz.jpg
-```
-
-## Dataset Visualization
-
-The `visualize_coco.py` script allows you to visualize samples from your COCO dataset with bounding boxes:
+### 4. Dataset Visualization
 
 ```bash
-# Visualize a specific sample
+# Visualize training sample
+python visualize_coco.py configs/strawberry_config.py --split train --idx 0
+
+# Visualize validation sample with custom output
 python visualize_coco.py configs/strawberry_config.py --split val --idx 5 --out-file sample.jpg
-
-# Options:
-# --split: train, val, or test
-# --idx: sample index to visualize
-# --out-file: output file path (optional)
 ```
 
-The script is compatible with both MMDetection 2.x and 3.x formats and will automatically handle path differences between annotation files and actual images.
+## Configuration
+
+The `strawberry_config.py` uses inheritance from MMDetection's Faster R-CNN base config and modifies:
+- **Classes**: 7 custom strawberry classes
+- **Dataset paths**: Points to your organized dataset
+- **Model head**: Configured for 7-class detection
+
+## Scripts Overview
+
+- **`split_coco_dataset.py`**: Takes a dataset directory and splits it into train/val/test with organized structure
+- **`fix_coco_paths.py`**: Fixes broken relative paths in COCO annotation files
+- **`visualize_coco.py`**: Visualizes dataset samples with real bounding box annotations
