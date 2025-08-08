@@ -1,63 +1,46 @@
 # Configuration for strawberry detection fine-tuning
-_base_ = [
-    'mmdet::_base_/models/faster_rcnn_r50_fpn.py',
-    'mmdet::_base_/datasets/coco_detection.py',
-    'mmdet::_base_/schedules/schedule_1x.py',
-    'mmdet::_base_/default_runtime.py'
-]
+# Inherits from Faster R-CNN R50 FPN 1x COCO base config
 
-# Model configuration
+_base_ = '../venv/lib/python3.10/site-packages/mmdet/.mim/configs/faster_rcnn/faster-rcnn_r50_fpn_1x_coco.py'
+
+# Model configuration - adjust for actual number of classes
 model = dict(
     roi_head=dict(
-        bbox_head=dict(num_classes=1)  # Change to your number of classes (strawberry = 1)
+        bbox_head=dict(num_classes=7)  # 7 classes in your dataset
     )
 )
 
-# Dataset configuration
+# Dataset configuration - point to your actual dataset
 dataset_type = 'CocoDataset'
-data_root = 'data/'
-classes = ('strawberry',)  # Define your classes
+data_root = '/home/vgreens/SSD_drive_1.8T/datasets/crop_cell/detection/coco_organized/'
 
+# Override dataset paths to use proper splits with separate image folders
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=2,
     train=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_train.json',
-        img_prefix=data_root + 'train/',
-        classes=classes
-    ),
+        data_root=data_root,
+        data_prefix=dict(img='train/'),
+        metainfo=dict(classes=('Flower', 'Flower_Fruit', 'Green_Fruit', 'Green_White_Fruit', 'Red_Fruit', 'UNSURE', 'White_Red_Fruit'))),
     val=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val.json',
-        img_prefix=data_root + 'val/',
-        classes=classes
-    ),
+        data_root=data_root,
+        data_prefix=dict(img='val/'),
+        metainfo=dict(classes=('Flower', 'Flower_Fruit', 'Green_Fruit', 'Green_White_Fruit', 'Red_Fruit', 'UNSURE', 'White_Red_Fruit'))),
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_test.json',
-        img_prefix=data_root + 'test/',
-        classes=classes
-    )
+        data_root=data_root,
+        data_prefix=dict(img='test/'),
+        metainfo=dict(classes=('Flower', 'Flower_Fruit', 'Green_Fruit', 'Green_White_Fruit', 'Red_Fruit', 'UNSURE', 'White_Red_Fruit')))
 )
 
-# Learning rate and optimizer
-optimizer = dict(type='SGD', lr=0.02, momentum=0.9, weight_decay=0.0001)
-lr_config = dict(
-    policy='step',
-    warmup='linear',
-    warmup_iters=500,
-    warmup_ratio=0.001,
-    step=[8, 11]
-)
-
-# Runtime settings
-runner = dict(type='EpochBasedRunner', max_epochs=12)
-checkpoint_config = dict(interval=1)
-log_config = dict(interval=50, hooks=[dict(type='TextLoggerHook')])
-
-# Load from pre-trained model
-load_from = 'https://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/faster_rcnn_r50_fpn_1x_coco/faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth'
+# Override evaluation to use validation split
+val_evaluator = dict(
+    type='CocoMetric',
+    ann_file=data_root + 'annotations/instances_val.json',
+    metric='bbox')
 
 # Work directory
 work_dir = './work_dirs/strawberry_detector'

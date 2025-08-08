@@ -2,10 +2,10 @@
 
 import argparse
 from mmdet.apis import train_detector
-from mmdet.datasets import build_dataset
-from mmdet.models import build_detector
+from mmengine.registry import build_from_cfg
+from mmdet.registry import DATASETS, MODELS
 from mmdet.utils import collect_env, get_root_logger
-from mmcv import Config
+from mmengine.config import Config
 import mmcv
 import os.path as osp
 
@@ -34,10 +34,10 @@ def main():
     mmcv.mkdir_or_exist(osp.abspath(cfg.work_dir))
     
     # Build dataset
-    datasets = [build_dataset(cfg.data.train)]
+    datasets = [build_from_cfg(cfg.data.train, DATASETS)]
     
     # Build model
-    model = build_detector(cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
+    model = build_from_cfg(cfg.model, MODELS)
     
     # Add meta information
     model.CLASSES = datasets[0].CLASSES
