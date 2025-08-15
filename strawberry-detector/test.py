@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 
 import argparse
-from mmdet.apis import inference_detector, init_detector
+import torch
 import mmcv
+from mmdet.apis import DetInferencer
+
+# Temporarily monkey patch torch.load for MMEngine checkpoints
+# This is the recommended approach for trusted checkpoints in PyTorch 2.6+
+_original_torch_load = torch.load
+
+def safe_torch_load(*args, **kwargs):
+    # For MMEngine checkpoints, we need to set weights_only=False as they contain
+    # custom objects like HistoryBuffer that are safe but not in the default allowlist
+    kwargs.setdefault('weights_only', False)
+    return _original_torch_load(*args, **kwargs)
+
+torch.load = safe_torch_load
 
 
 def main():
@@ -15,15 +28,29 @@ def main():
                         help='bbox score threshold')
     args = parser.parse_args()
 
-    # Build model
-    model = init_detector(args.config, args.checkpoint, device='cuda:0')
+    # Initialize the DetInferencer with config and checkpoint
+    inferencer = DetInferencer(
+        model=args.config, 
+        weights=args.checkpoint, 
+        device='cuda:0'
+    )
     
-    # Test image
-    result = inference_detector(model, args.img)
+    # Run inference
+    results = inferencer(
+        args.img,
+        pred_score_thr=args.score_thr,
+        no_save_vis=True,  # Don't auto-save
+        return_vis=True,  # Return visualization
+        show=False
+    )
     
-    # Show result
-    img = mmcv.imread(args.img)
-    model.show_result(img, result, score_thr=args.score_thr, out_file=args.out)
+    # Save visualization if output path specified
+    if args.out:
+        visualization = results['visualization'][0]  # Get first (and only) image
+        # Convert RGB to BGR for correct color display (mmcv.imwrite expects BGR)
+        visualization_bgr = mmcv.rgb2bgr(visualization)
+        mmcv.imwrite(visualization_bgr, args.out)
+        print(f"Result saved to {args.out}")
 
 
 if __name__ == '__main__':
