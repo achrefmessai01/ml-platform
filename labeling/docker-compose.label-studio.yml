@@ -4,7 +4,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data:/label-studio/data
+      - ~/SSD_drive_1.8T/label_studio:/label-studio/data
     environment:
       - LABEL_STUDIO_USERNAME=admin
       - LABEL_STUDIO_PASSWORD=your_secure_password
