@@ -1,1 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
 venv/
+
+# MLflow experiments
+mlruns/
+
+# MMDetection training outputs
+work_dirs/
+
+# Model checkpoints
+*.pth

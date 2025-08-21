@@ -1,0 +1,25 @@
+services:
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ~/SSD_drive_1.8T/label_studio:/label-studio/data
+    environment:
+      - LABEL_STUDIO_USERNAME=admin
+      - LABEL_STUDIO_PASSWORD=your_secure_password
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/labelstudio
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=nx436h00
+      - POSTGRES_DB=labelstudiox
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
