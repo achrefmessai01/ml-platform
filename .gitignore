@@ -13,3 +13,6 @@ work_dirs/
 
 # Model checkpoints
 *.pth
+
+# Fused directories
+datasets/
