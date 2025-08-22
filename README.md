@@ -26,4 +26,5 @@ fusermount -u datasets
 
 ## Experiments
 
-Experiments 
+If the ml-stack is running experiments should be logged to minio. 
+From there they can be monitored using mlstudio which is already connected to minio.
