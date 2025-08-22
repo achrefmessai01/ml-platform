@@ -1,0 +1,79 @@
+services:
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    user: "1001:1001"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ${ML_STACK_FOLDER}/label_studio:/label-studio/data
+    environment:
+      - LABEL_STUDIO_USERNAME=${USERNAME}
+      - LABEL_STUDIO_PASSWORD=${PASSWORD}
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    environment:
+      MINIO_ROOT_USER: ${USERNAME}
+      MINIO_ROOT_PASSWORD: ${PASSWORD}
+    volumes:
+      - ${ML_STACK_FOLDER}/minio/data:/data
+    command: server /data --console-address ":9001"
+  
+  mlflow-db:
+    restart: always
+    image: postgres
+    container_name: mlflow_db
+    expose:
+      - "${PG_PORT}"
+    networks:
+      - backend
+    environment:
+      - POSTGRES_USER=${USERNAME}
+      - POSTGRES_PASSWORD=${PASSWORD}
+      - POSTGRES_DB=${PG_DATABASE}
+    volumes:
+      - ${ML_STACK_FOLDER}/db_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD", "pg_isready", "-p", "${PG_PORT}", "-U", "${USERNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  
+  mlflow-tracking_server:
+    restart: always
+    build: ./mlflow
+    image: mlflow_server
+    container_name: mlflow_server
+    depends_on:
+      - mlflow-db
+    ports:
+      - "${MLFLOW_PORT}:5000"
+    networks:
+      - frontend
+      - backend
+    environment:
+      - AWS_ACCESS_KEY_ID=${USERNAME}
+      - AWS_SECRET_ACCESS_KEY=${PASSWORD}
+      - MLFLOW_S3_ENDPOINT_URL=http://localhost:${MINIO_PORT}
+      - MLFLOW_S3_IGNORE_TLS=true
+    command: >
+      mlflow server
+      --backend-store-uri postgresql://${USERNAME}:${PASSWORD}@mlflow-db:${PG_PORT}/${PG_DATABASE}
+      --host 0.0.0.0
+      --serve-artifacts
+      --artifacts-destination http://localhost:${MINIO_PORT}/${MLFLOW_BUCKET_NAME}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
