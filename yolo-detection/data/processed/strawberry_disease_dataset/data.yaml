@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 12
+names: ['Angular Leafspot', 'Anthracnose Fruit Rot', 'Early-Turning', 'Gray Mold', 'Green-Strawberry', 'Late-Turning', 'Leaf Spot', 'Powdery Mildew Fruit', 'Powdery Mildew Leaf', 'Red-Turning', 'Turning', 'White-Strawberry']
+
+roboflow:
+  workspace: esther-strawberry
+  project: strawberry-fruit-and-leaf-ripeness-and-disease
+  version: 14
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/esther-strawberry/strawberry-fruit-and-leaf-ripeness-and-disease/dataset/14

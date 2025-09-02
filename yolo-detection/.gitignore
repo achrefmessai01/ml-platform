@@ -1,0 +1,94 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model files
+*.pt
+*.onnx
+*.engine
+
+# Data (keep structure, ignore content)
+data/raw/*/
+data/processed/*/
+data/classification/*/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/classification/.gitkeep
+
+# Training outputs
+runs/
+models/cache/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Backup directories
+*_backup/
+
+# Test files
+test_*.py
+*_test.py
+
+# Standalone scripts (integrated into package)
+analyze_dataset.py
+color_transfer_rgb.py
+compare_datasets.py
+convert_obb_to_bb.py
+convert_yolo_seg_to_obb.py
+create_subset.py
+merge_datasets.py
+relabel_dataset.py
+validate_dataset.py
+
+# Temporary development files
+demo.py
+migrate.py
+test_package.py
+*_new.*
+*_backup.*
+Makefile
+RESTRUCTURING_SUMMARY.md
+setup.py
