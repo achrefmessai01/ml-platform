@@ -19,6 +19,7 @@ from detectron2.engine import DefaultTrainer, HookBase
 from detectron2.engine.hooks import BestCheckpointer
 from detectron2.evaluation import COCOEvaluator
 from detectron2.utils.logger import setup_logger
+from detectron2_pyfunc import Detectron2PyFuncModel
 
 setup_logger()
 
@@ -75,10 +76,34 @@ class MLflowHook(HookBase):
                 print(f"Logged model weights: {model_path}")
 
                 # Also try to register the model using pytorch.log_model for compatibility
+
+                conda_env = {
+                    "channels": ["pytorch", "conda-forge"],
+                    "dependencies": [
+                        "python=3.12.3",
+                        "pip<=24.0",
+                        "pytorch",
+                        "torchvision",
+                        {
+                            "pip": [
+                                "mlflow==3.4.0",
+                                "cloudpickle==3.1.1",
+                                "numpy==2.1.2",
+                                "opencv-python==4.12.0.88",
+                                "git+https://github.com/facebookresearch/detectron2.git",
+                            ]
+                        },
+                    ],
+                    "name": "mlflow-env",
+                }
+
                 mlflow.pytorch.log_model(
-                    pytorch_model=self.model,
-                    artifact_path="model",
+                    python_model=Detectron2PyFuncModel(),
+                    name="model",
                     registered_model_name=self.hyperparams["registered_model_name"],
+                    artifacts={"weights": model_path},
+                    conda_env=conda_env,
+                    code_paths=["detectron2_pyfunc.py"],
                 )
 
                 print(
@@ -114,7 +139,9 @@ def custom_mapper(dataset_dict, hyperparams):
     dataset_dict = copy.deepcopy(dataset_dict)
 
     # Read image
-    image = utils.read_image(dataset_dict["file_name"], format=hyperparams["image_format"])
+    image = utils.read_image(
+        dataset_dict["file_name"], format=hyperparams["image_format"]
+    )
 
     # Define augmentations using hyperparameters
     augs = T.AugmentationList(
@@ -321,9 +348,9 @@ def main():
     cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(hyperparams["model_config"])
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = hyperparams["num_classes"]
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = hyperparams["roi_batch_size_per_image"]
-    
+
     cfg.MODEL.BACKBONE.FREEZE_AT = 2
-    if hasattr(cfg.MODEL, 'RESNETS') and hasattr(cfg.MODEL.RESNETS, 'CHECKPOINT'):
+    if hasattr(cfg.MODEL, "RESNETS") and hasattr(cfg.MODEL.RESNETS, "CHECKPOINT"):
         cfg.MODEL.RESNETS.CHECKPOINT = True
 
     # Solver
@@ -342,7 +369,9 @@ def main():
 
     # Input
     cfg.INPUT.FORMAT = hyperparams["image_format"]  # Set image format (RGB or BGR)
-    cfg.INPUT.MIN_SIZE_TRAIN = hyperparams["input_min_size_train"]  # Configurable image sizes
+    cfg.INPUT.MIN_SIZE_TRAIN = hyperparams[
+        "input_min_size_train"
+    ]  # Configurable image sizes
     cfg.INPUT.MAX_SIZE_TRAIN = hyperparams["input_max_size_train"]
 
     # Use temporary directory for output (will be cleaned up after MLflow logging)
