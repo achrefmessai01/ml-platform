@@ -4,6 +4,9 @@ services:
     user: "1001:1001"
     ports:
       - "8080:8080"
+    networks:
+      - backend
+      - frontend
     volumes:
       - ${ML_STACK_FOLDER}/label_studio:/label-studio/data
     environment:
@@ -20,8 +23,8 @@ services:
       - backend
       - frontend
     environment:
-      MINIO_ROOT_USER: ${USERNAME}
-      MINIO_ROOT_PASSWORD: ${PASSWORD}
+      - MINIO_ROOT_USER=${USERNAME}
+      - MINIO_ROOT_PASSWORD=${PASSWORD}
     volumes:
       - ${ML_STACK_FOLDER}/minio/data:/data
     command: server /data --console-address ":9001"
