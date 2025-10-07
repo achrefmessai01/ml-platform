@@ -7,6 +7,8 @@ services:
     networks:
       - backend
       - frontend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ${ML_STACK_FOLDER}/label_studio:/label-studio/data
     environment:
