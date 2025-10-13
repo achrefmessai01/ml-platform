@@ -27,8 +27,9 @@ services:
     command: server /data --console-address ":9001"
   
   mlflow-db:
+    user: "1001:1001"
     restart: always
-    image: postgres
+    image: postgres:17
     container_name: mlflow_db
     expose:
       - "${PG_PORT}"
@@ -71,7 +72,7 @@ services:
       --serve-artifacts
       --artifacts-destination s3://${MLFLOW_BUCKET_NAME}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${MLFLOW_PORT}/"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 30s
       timeout: 10s
       retries: 3
