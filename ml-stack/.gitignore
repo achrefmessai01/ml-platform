@@ -3,3 +3,4 @@ minio-data/
 .env
 docker_volumes/
 docker_volumes.zip
+mlstack/

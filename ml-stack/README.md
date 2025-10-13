@@ -31,7 +31,12 @@ Before running the stack, ensure you have:
 ## Setup Instructions
 
 1. Copy `.env.example` to `.env` and update environment variables as needed.
-2. Run `docker compose up` to start all services.
+2. Create ML_STACK_FOLDER at location specified in `.env` (default: `~/SSD_drive_1.8T/ml-stack/`).
+3. Set permission for label studio folder:
+   ```sh
+   sudo chown -R 1001:1001 ${ML_STACK_FOLDER}/label_studio
+   ```
+4. Run `docker compose up` to start all services.
 
 ## Notes
 
