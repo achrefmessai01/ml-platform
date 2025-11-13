@@ -1,19 +1,70 @@
 services:
-  label-studio:
+  label-studio-nginx:
+    build: .
     image: heartexlabs/label-studio:latest
-    user: "1001:1001"
+    restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8080:8085"
+      - "8081:8086"
+    depends_on:
+      - app
+    networks:
+      - frontend
+      - backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
+      - NGINX_SSL_CERT=/certs/cert.pem
+      - NGINX_SSL_CERT_KEY=/certs/cert.key
+    volumes:
+      - ${ML_STACK_FOLDER}/label_studio_nginx:/label-studio/data:rw
+      - ${ML_STACK_FOLDER}/nginx_certs:/certs:ro
+    command: nginx
+
+  app:
+    stdin_open: true
+    tty: true
+    image: heartexlabs/label-studio:latest
+    restart: unless-stopped
+    expose:
+      - "${LABEL_STUDIO_PORT}"
+    depends_on:
+      - label-studio-db
     networks:
       - backend
       - frontend
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ${ML_STACK_FOLDER}/label_studio:/label-studio/data
+      - ${ML_STACK_FOLDER}/label_studio:/label-studio/data:rw
     environment:
       - LABEL_STUDIO_USERNAME=${USERNAME}
       - LABEL_STUDIO_PASSWORD=${PASSWORD}
+      - DJANGO_DB=default
+      - POSTGRE_NAME=postgres
+      - POSTGRE_USER=postgres
+      - POSTGRE_PASSWORD=
+      - POSTGRE_PORT=${LS_DB_PORT}
+      - POSTGRE_HOST=label-studio-db
+      - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
+      - JSON_LOG=1
+    command: label-studio-uwsgi
+  
+  label-studio-db:
+    image: pgautoupgrade/pgautoupgrade:13-alpine
+    hostname: db
+    restart: unless-stopped
+    expose:
+      - "${LS_DB_PORT}"
+    networks:
+      - backend
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - POSTGRES_USER=postgres
+    volumes:
+      - ${ML_STACK_FOLDER}/label_studio_db:/var/lib/postgresql/data
+    command: -p ${LS_DB_PORT}
 
   minio:
     image: minio/minio:latest
