@@ -5,7 +5,6 @@ import tempfile
 from datetime import datetime
 
 import mlflow
-import mlflow.pytorch
 import torch
 from detectron2 import model_zoo
 from detectron2.checkpoint import DetectionCheckpointer
@@ -19,6 +18,7 @@ from detectron2.engine import DefaultTrainer, HookBase
 from detectron2.engine.hooks import BestCheckpointer
 from detectron2.evaluation import COCOEvaluator
 from detectron2.utils.logger import setup_logger
+
 from detectron2_pyfunc import Detectron2PyFuncModel
 
 setup_logger()
@@ -97,7 +97,7 @@ class MLflowHook(HookBase):
                     "name": "mlflow-env",
                 }
 
-                mlflow.pytorch.log_model(
+                mlflow.pyfunc.log_model(
                     python_model=Detectron2PyFuncModel(),
                     name="model",
                     registered_model_name=self.hyperparams["registered_model_name"],
@@ -287,35 +287,35 @@ def main():
         # Dataset parameters
         "train_dataset": "strawberries_train",
         "val_dataset": "strawberries_val",
-        "train_annotations": "datasets/merged_data/detection/combined_coco/annotations/instances_train.json",
-        "train_images": "datasets/merged_data/detection/combined_coco/train",
-        "val_annotations": "datasets/merged_data/detection/combined_coco/annotations/instances_val.json",
-        "val_images": "datasets/merged_data/detection/combined_coco/val",
+        "train_annotations": "datasets/crop_cell/detection/coco_organized/annotations_filtered/instances_train.json",
+        "train_images": "datasets/crop_cell/detection/coco_organized/train",
+        "val_annotations": "datasets/crop_cell/detection/coco_organized/annotations_filtered/instances_val.json",
+        "val_images": "datasets/crop_cell/detection/coco_organized/val",
         # Model parameters
-        "num_classes": 1,  # Only strawberry class
-        "roi_batch_size_per_image": 256,  # Reduced from 512 to save VRAM
+        "num_classes": 6,
+        "roi_batch_size_per_image": 512,  # Reduced from 512 to save VRAM
         # Training parameters
         "batch_size": 2,  # Reduced from 4 to save VRAM
-        "learning_rate": 0.00125,  # Adjusted for smaller batch size (0.0025 * 2/4)
+        "learning_rate": 0.000625,  # Adjusted for smaller batch size (0.0025 * 2/4)
         "gradient_accumulation_steps": 2,  # Accumulate gradients to simulate larger batch
-        "max_iterations": 2500,  # Reasonable for initial training
+        "max_iterations": 4000,  # Reasonable for initial training
         "lr_decay_steps": [1500, 2000],  # Decay at 67% and 90%
         "warmup_iterations": 300,  # Warmup for first ~17% of training
         "checkpoint_period": 500,
         # Evaluation parameters
-        "eval_period": 400,  # Evaluate less frequently to save VRAM
-        "num_workers": 1,  # Reduced workers to save memory
+        "eval_period": 200,  # Evaluate less frequently to save VRAM
+        "num_workers": 2,  # Reduced workers to save memory
         # Data augmentation parameters
         "image_format": "RGB",  # Image format: "RGB" or "BGR"
         "input_min_size_train": (480, 600),  # Reduced image sizes to save VRAM
         "input_max_size_train": 800,  # Reduced from 1200 to save VRAM
         "aug_horizontal_flip_prob": 0.5,  # Probability of horizontal flip
-        "aug_vertical_flip_prob": 0.1,  # Probability of vertical flip (rare but useful)
-        "aug_rotation_angle_range": [-15, 15],  # Rotation angle range in degrees
-        "aug_brightness_range": [0.8, 1.2],  # Brightness adjustment range
-        "aug_contrast_range": [0.8, 1.2],  # Contrast adjustment range
-        "aug_saturation_range": [0.8, 1.2],  # Saturation adjustment range
-        "aug_lighting_scale": 0.7,  # PCA-based color jitter scale
+        "aug_vertical_flip_prob": 0.5,  # Probability of vertical flip (rare but useful)
+        "aug_rotation_angle_range": [-5, 5],  # Rotation angle range in degrees
+        "aug_brightness_range": [1, 1],  # Brightness adjustment range
+        "aug_contrast_range": [1, 1],  # Contrast adjustment range
+        "aug_saturation_range": [1, 1],  # Saturation adjustment range
+        "aug_lighting_scale": 1.0,  # PCA-based color jitter scale
         # MLflow parameters
         "mlflow_tracking_uri": "http://localhost:5011",
         "mlflow_experiment": "strawberry-detection",
