@@ -1,0 +1,6 @@
+segmentation-models-pytorch
+lightning
+albumentations
+pycocotools
+roboflow
+mlflow
