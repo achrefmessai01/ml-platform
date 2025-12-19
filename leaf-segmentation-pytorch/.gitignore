@@ -1,4 +1,5 @@
 .mypy_cache/
 roboflow/
+roboflow_strawberry/
 best-model.ckpt
 inference_result.png
