@@ -7,17 +7,19 @@ from rfdetr import RFDETRLarge
 from rf_detr_pyfunc import RFDetrPyFuncModel
 from mlflow.models import infer_signature
 
+os.environ["MLFLOW_TRACKING_TOKEN"] = ""
+
 mlflow_config = {
-    "experiment_name": "rfdetr_strawberry_detector_single_class",
-    "tracking_uri": "http://localhost:5011",
+    "experiment_name": "rfdetr_pepper_detector_single_class",
+    "tracking_uri": "https://gitlab.com/api/v4/projects/72607084/ml/mlflow/",
 }
 
 # Hyperparameters
 hyperparameters = {
     "base_model_name": "RFDETRMedium",
-    "registered_model_name": "rfdetr_strawberry_detector_single_class",
-    "dataset_path": "datasets/merged_data/detection/combined_coco",
-    "output_dir": "output/rfdetr_strawberry_detector_single_class",
+    "registered_model_name": "rfdetr_pepper_detector_single_class",
+    "dataset_path": "pepper",
+    "output_dir": "output/rfdetr_pepper_detector_single_class",
     "epochs": 40,
     "batch_size": 16,
     "grad_accum_steps": 1,
@@ -157,7 +159,7 @@ def log_experiment():
 
         mlflow.pyfunc.log_model(
             python_model=RFDetrPyFuncModel(),
-            name="rfdetr_strawberry_detector_single_class_model",
+            name="rfdetr_pepper_detector_single_class_model",
             registered_model_name=hyperparameters["registered_model_name"],
             artifacts={"weights": model_path},
             conda_env=conda_env,
