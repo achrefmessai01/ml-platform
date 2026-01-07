@@ -1,5 +1,7 @@
 .mypy_cache/
 roboflow/
 roboflow_strawberry/
+roboflow_tomato/
+roboflow_pepper/
 best-model.ckpt
 inference_result.png
