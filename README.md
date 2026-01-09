@@ -5,7 +5,7 @@ For usage and instructions please refer to the readme in the individual project 
 
 ## Datasets
 
-Datasets are stored on minio which is running on the vGreens server.
+Datasets are stored on minio which is can be started using the docker-compose file in the ml-stack directory. The data is currently only stored on the verda shared drive. This will change in the future.
 If you want to use a dataset for training, you can fuse the datasets bucket to the local filesystem using the following command:
 
 ```bash
@@ -26,5 +26,16 @@ fusermount -u datasets
 
 ## Experiments
 
-If the ml-stack is running experiments should be logged to minio. 
-From there they can be monitored using mlstudio which is already connected to minio.
+Experiments are tracked using MLflow. We are using the remote mlflow instance integrated into Gitlab. It can be accesed via this URI: `https://gitlab.com/api/v4/projects/72607084/ml/mlflow/`. You have to also provide an access token for authentication with at least the `api` scope. See: `https://docs.gitlab.com/user/project/ml/experiment_tracking/mlflow_client/#enable-mlflow-client-integration`.
+
+## Workflow
+
+The general workflow for developing and training models is as follows:
+
+1. Create a new branch for your work.
+2. Implement your model and training code in the appropriate project directory.
+3. Train your model on whatever compute resources you have available.
+4. Log your experiments using MLflow.
+5. Log the model to the MLflow model registry.
+6. Once you have an experiment run you are satisfied with, promote the run to a registered model version in the model registry.
+7. Merge your branch back into the main branch.

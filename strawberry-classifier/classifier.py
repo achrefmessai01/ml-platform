@@ -356,7 +356,7 @@ if __name__ == "__main__":
         "early_stopping_patience": 5,
         "early_stopping_mode": "min",
         # MLflow settings
-        "mlflow_uri": "http://localhost:5011",
+        "mlflow_uri": "https://gitlab.com/api/v4/projects/72607084/ml/mlflow/",
         "experiment_name": "strawberry-classifier",
         "run_name": None,
         "model_registry_name": "strawberry-classifier",
