@@ -127,22 +127,29 @@ visualizer = dict(
 
 # IMPROVED: Enhanced data augmentation pipeline
 train_pipeline = [
-    dict(type='LoadImageFromFile', backend_args=None),
-    dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
-    dict(type='RandomFlip', prob=0.5),
+    dict(type="LoadImageFromFile", backend_args=None),
+    dict(type="LoadAnnotations", with_bbox=True),
+    dict(type="Resize", scale=(1333, 800), keep_ratio=True),
+    dict(type="RandomFlip", prob=0.5),
     # Additional augmentations for better generalization
-    dict(type='PhotoMetricDistortion'),  # Color augmentation
-    dict(type='Expand', mean=[103.53, 116.28, 123.675], to_rgb=False, ratio_range=(1, 2)),
-    dict(type='MinIoURandomCrop', min_ious=(0.1, 0.3, 0.5, 0.7, 0.9), min_crop_size=0.3),
-    dict(type='PackDetInputs'),
+    dict(type="PhotoMetricDistortion"),  # Color augmentation
+    dict(
+        type="Expand", mean=[103.53, 116.28, 123.675], to_rgb=False, ratio_range=(1, 2)
+    ),
+    dict(
+        type="MinIoURandomCrop", min_ious=(0.1, 0.3, 0.5, 0.7, 0.9), min_crop_size=0.3
+    ),
+    dict(type="PackDetInputs"),
 ]
 
 val_test_pipeline = [
-    dict(type='LoadImageFromFile', backend_args=None),
-    dict(type='Resize', scale=(1333, 800), keep_ratio=True),
-    dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='PackDetInputs', meta_keys=('img_id', 'img_path', 'ori_shape', 'img_shape', 'scale_factor')),
+    dict(type="LoadImageFromFile", backend_args=None),
+    dict(type="Resize", scale=(1333, 800), keep_ratio=True),
+    dict(type="LoadAnnotations", with_bbox=True),
+    dict(
+        type="PackDetInputs",
+        meta_keys=("img_id", "img_path", "ori_shape", "img_shape", "scale_factor"),
+    ),
 ]
 
 # Data loading - Override dataloaders to use our strawberry dataset
@@ -232,17 +239,17 @@ test_dataloader = dict(
 )
 
 val_evaluator = dict(
-    type='CocoMetric',
-    ann_file=data_root + 'annotations/instances_val.json',
-    metric='bbox',
-    format_only=False
+    type="CocoMetric",
+    ann_file=data_root + "annotations/instances_val.json",
+    metric="bbox",
+    format_only=False,
 )
 
 test_evaluator = dict(
-    type='CocoMetric',
-    ann_file=data_root + 'annotations/instances_test.json',
-    metric='bbox',
-    format_only=False
+    type="CocoMetric",
+    ann_file=data_root + "annotations/instances_test.json",
+    metric="bbox",
+    format_only=False,
 )
 
 # Work directory

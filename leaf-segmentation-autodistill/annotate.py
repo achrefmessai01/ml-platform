@@ -1,11 +1,12 @@
-import shutil
 import os
-import roboflow
-from pathlib import Path
-from PIL import Image
+import shutil
 from glob import glob
-from autodistill_grounded_sam import GroundedSAM
+from pathlib import Path
+
+from autodistill.core import BaseModel
 from autodistill.detection import CaptionOntology
+from autodistill_grounded_sam import GroundedSAM
+from PIL import Image
 
 
 def setup_model(ontology: CaptionOntology, confidence: float = 0.2) -> GroundedSAM:
@@ -34,7 +35,7 @@ def preprocess_images(input_folder: str, max_resolution: int) -> None:
                 print(f"Resized image saved to {image_path} with size {new_size}")
 
 
-def convert_to_jpg(image_path):
+def convert_to_jpg(image_path: str) -> None:
     """Convert an image to JPG format if it is not already in that format."""
     with Image.open(image_path) as img:
         # Convert to RGB (necessary for JPEG)
@@ -51,15 +52,13 @@ def convert_to_jpg(image_path):
         os.remove(image_path)
 
 
-def label_images(input_folder, model):
+def label_images(input_folder: str, model: BaseModel) -> None:
     """Auto label all images in the input folder and save to the output folder."""
     batches = glob(input_folder + "/*")
 
     for batch in batches:
         print(f"Processing batch: {batch}")
-        labels = model.label(
-            input_folder=batch, extension=".jpg", output_folder=input_folder
-        )
+        model.label(input_folder=batch, extension=".jpg", output_folder=input_folder)
 
 
 def batch_images(input_folder: str, batch_size: int) -> None:
@@ -99,9 +98,7 @@ def batch_images(input_folder: str, batch_size: int) -> None:
 
         print(f"Copied {len(batch_files)} images to {batch_folder.name}")
 
-    print(
-        f"Batching complete! Created {(len(image_files) - 1) // batch_size + 1} batches."
-    )
+    print(f"Batching complete! Created {(len(image_files) - 1) // batch_size + 1} batches.")
 
 
 def cleanup_batches(input_folder: str) -> None:
@@ -116,9 +113,7 @@ def cleanup_batches(input_folder: str) -> None:
     if not input_path.exists():
         raise FileNotFoundError(f"Input folder '{input_folder}' does not exist")
 
-    batch_folders = [
-        f for f in input_path.iterdir() if f.is_dir() and f.name.startswith("batch_")
-    ]
+    batch_folders = [f for f in input_path.iterdir() if f.is_dir() and f.name.startswith("batch_")]
 
     print(f"Found {len(batch_folders)} batch folders. Removing...")
 
@@ -127,21 +122,6 @@ def cleanup_batches(input_folder: str) -> None:
         print(f"Removed {batch_folder.name}")
 
     print("Cleanup complete!")
-
-
-def upload_to_roboflow(dataset_folder: str, project_name: str) -> None:
-    """Upload labeled images to Roboflow dataset."""
-    rf = roboflow.Roboflow(api_key="MlW0ZIwhEkHcCdP281hK")
-    workspace = rf.workspace("YOUR_WORKSPACE_URL")
-    workspace.upload_dataset(
-        dataset_folder,  # This is your dataset path
-        num_workers=10,
-        project_license="MIT",
-        project_type="semantic-segmentation",
-        batch_name=None,
-        num_retries=0,
-        is_prediction=False,  # optional, set to True if the dataset is not ground truth and needs approval
-    )
 
 
 if __name__ == "__main__":

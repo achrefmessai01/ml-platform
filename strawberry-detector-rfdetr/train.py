@@ -1,11 +1,13 @@
-import mlflow
 import json
 import os
-import cv2
 from datetime import datetime
-from rfdetr import RFDETRLarge
-from rf_detr_pyfunc import RFDetrPyFuncModel
+
+import cv2
+import mlflow
 from mlflow.models import infer_signature
+from rfdetr import RFDETRLarge
+
+from rf_detr_pyfunc import RFDetrPyFuncModel
 
 os.environ["MLFLOW_TRACKING_TOKEN"] = ""
 
@@ -32,7 +34,8 @@ hyperparameters = {
 }
 
 
-def train():
+def train() -> None:
+    """Train the RFDETRLarge model with specified hyperparameters."""
     model = RFDETRLarge()
     model.train(
         dataset_dir=hyperparameters["dataset_path"],
@@ -49,7 +52,7 @@ def train():
     )
 
 
-def log_experiment():
+def log_experiment() -> None:
     """Log experiment details to MLflow."""
     mlflow.set_tracking_uri(mlflow_config["tracking_uri"])
     mlflow.set_experiment(mlflow_config["experiment_name"])
@@ -67,11 +70,7 @@ def log_experiment():
 
                 # Extract and convert timestamp
                 timestamp = dict_line.pop("now_time", None)
-                timestamp = (
-                    int(round(datetime.fromisoformat(timestamp).timestamp()))
-                    if timestamp
-                    else None
-                )
+                timestamp = int(round(datetime.fromisoformat(timestamp).timestamp())) if timestamp else None
 
                 epoch = dict_line.pop("epoch", None)
                 test_results_dict = dict_line.pop("test_results_json", None)
@@ -122,7 +121,7 @@ def log_experiment():
         # Log model
         model_path = f"{hyperparameters['output_dir']}/checkpoint_best_total.pth"
         mlflow.log_artifact(model_path, "model_weights")
-        
+
         # Infer signature
         model = RFDETRLarge(pretrain_weights=model_path)
         image = cv2.imread("test.jpg")
@@ -139,7 +138,7 @@ def log_experiment():
         params = {"confidence_threshold": 0.5}
 
         signature = infer_signature(image, output_example, params)
-        
+
         conda_env = {
             "channels": ["pytorch", "conda-forge"],
             "dependencies": [

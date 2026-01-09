@@ -1,7 +1,7 @@
 from glob import glob
 
-from autodistill_grounded_sam import GroundedSAM
 from autodistill.detection import CaptionOntology
+from autodistill_grounded_sam import GroundedSAM
 
 ontology = CaptionOntology(
     {

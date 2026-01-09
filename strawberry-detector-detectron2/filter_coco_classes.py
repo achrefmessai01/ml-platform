@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple COCO Class Filter
+Simple COCO Class Filter.
 
 Filters classes from COCO datasets by removing unwanted classes and their bounding boxes.
 Creates a new folder with modified annotations only (no image copying).
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 
-def filter_coco_dataset(dataset_dir, classes_to_remove):
+def filter_coco_dataset(dataset_dir: str, classes_to_remove: list[str]) -> None:
     """Filter COCO dataset by removing specified classes."""
     dataset_path = Path(dataset_dir)
 
@@ -66,9 +66,7 @@ def filter_coco_dataset(dataset_dir, classes_to_remove):
         for annotation in data["annotations"]:
             if annotation["category_id"] in valid_category_ids:
                 new_annotation = annotation.copy()
-                new_annotation["category_id"] = category_mapping[
-                    annotation["category_id"]
-                ]
+                new_annotation["category_id"] = category_mapping[annotation["category_id"]]
                 kept_annotations.append(new_annotation)
                 valid_image_ids.add(annotation["image_id"])
 
@@ -95,11 +93,10 @@ def filter_coco_dataset(dataset_dir, classes_to_remove):
     print(f"\nFiltered annotations saved to: {output_annotations_dir}")
 
 
-def main():
+def main() -> None:
+    """Main function to parse arguments and call the filter function."""
     if len(sys.argv) != 3:
-        print(
-            "Usage: python filter_coco_classes.py <input_dataset> <classes_to_remove>"
-        )
+        print("Usage: python filter_coco_classes.py <input_dataset> <classes_to_remove>")
         print("Example: python filter_coco_classes.py coco_organized 'UNSURE,Flower'")
         sys.exit(1)
 

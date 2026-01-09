@@ -9,10 +9,9 @@ import torch
 from detectron2 import model_zoo
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import get_cfg
-from detectron2.data import build_detection_train_loader
+from detectron2.data import build_detection_train_loader, get_detection_dataset_dicts
 from detectron2.data import detection_utils as utils
-from detectron2.data import get_detection_dataset_dicts
-from detectron2.data import transforms as T
+from detectron2.data import transforms as T  # noqa: N812
 from detectron2.data.datasets import register_coco_instances
 from detectron2.engine import DefaultTrainer, HookBase
 from detectron2.engine.hooks import BestCheckpointer
@@ -25,18 +24,18 @@ setup_logger()
 
 
 class MLflowHook(HookBase):
-    """
-    Hook to log metrics and register models with MLflow.
-    """
+    """Hook to log metrics and register models with MLflow."""
 
-    def __init__(self, cfg, model, hyperparams):
+    def __init__(self, cfg: get_cfg, model: torch.nn.Module, hyperparams: dict) -> None:
+        """Initialize MLflowHook with config, model, and hyperparameters."""
         super().__init__()
         self.cfg = cfg
         self.model = model
         self.hyperparams = hyperparams
         self.run_id = None
 
-    def before_train(self):
+    def before_train(self) -> None:
+        """Log hyperparameters to MLflow before training starts."""
         # Start MLflow run
         mlflow.set_tracking_uri(self.hyperparams["mlflow_tracking_uri"])
         mlflow.set_experiment(self.hyperparams["mlflow_experiment"])
@@ -54,13 +53,15 @@ class MLflowHook(HookBase):
 
         print(f"Logged {len(self.hyperparams)} hyperparameters to MLflow")
 
-    def after_step(self):
+    def after_step(self) -> None:
+        """Log metrics to MLflow after each training step."""
         # Log metrics from storage
         storage = self.trainer.storage
         for key, (value, iteration) in storage.latest().items():
             mlflow.log_metric(key, value, step=iteration)
 
-    def after_train(self):
+    def after_train(self) -> None:
+        """Log the final model to MLflow after training completes."""
         # Log config as artifact to MLflow
         config_path = os.path.join(self.cfg.OUTPUT_DIR, "config.yaml")
         with open(config_path, "w", encoding="utf-8") as f:
@@ -106,9 +107,7 @@ class MLflowHook(HookBase):
                     code_paths=["detectron2_pyfunc.py"],
                 )
 
-                print(
-                    f"Model registered in MLflow Model Registry as '{self.hyperparams['registered_model_name']}'"
-                )
+                print(f"Model registered in MLflow Model Registry as '{self.hyperparams['registered_model_name']}'")
             except Exception as e:  # noqa: BLE001
                 print(f"Warning: Could not register model: {e}")
         else:
@@ -116,7 +115,7 @@ class MLflowHook(HookBase):
 
         mlflow.end_run()
 
-    def _get_best_validation_ap(self):
+    def _get_best_validation_ap(self) -> float:
         """Get the best validation AP from storage."""
         storage = self.trainer.storage
         try:
@@ -127,7 +126,7 @@ class MLflowHook(HookBase):
         return 0.0
 
 
-def custom_mapper(dataset_dict, hyperparams):
+def custom_mapper(dataset_dict: dict, hyperparams: dict) -> dict:
     """
     Custom mapper for data augmentation using hyperparameters.
 
@@ -139,9 +138,7 @@ def custom_mapper(dataset_dict, hyperparams):
     dataset_dict = copy.deepcopy(dataset_dict)
 
     # Read image
-    image = utils.read_image(
-        dataset_dict["file_name"], format=hyperparams["image_format"]
-    )
+    image = utils.read_image(dataset_dict["file_name"], format=hyperparams["image_format"])
 
     # Define augmentations using hyperparameters
     augs = T.AugmentationList(
@@ -188,7 +185,7 @@ def custom_mapper(dataset_dict, hyperparams):
     }
 
 
-def build_train_loader(cfg, hyperparams):
+def build_train_loader(cfg: get_cfg, hyperparams: dict) -> torch.utils.data.DataLoader:
     """
     Build training data loader with custom augmentations.
 
@@ -198,7 +195,7 @@ def build_train_loader(cfg, hyperparams):
     """
 
     # Create a mapper function that uses the hyperparameters
-    def mapper_with_hyperparams(dataset_dict):
+    def mapper_with_hyperparams(dataset_dict: dict) -> dict:
         return custom_mapper(dataset_dict, hyperparams)
 
     # Get dataset dicts for the training datasets
@@ -214,14 +211,12 @@ def build_train_loader(cfg, hyperparams):
 
 
 class CustomTrainer(DefaultTrainer):
-    """
-    Custom trainer with COCO evaluation and hyperparameter-driven data augmentation.
-    """
+    """Custom trainer with COCO evaluation and hyperparameter-driven data augmentation."""
 
     # Class variable to store hyperparameters
     _hyperparams = None
 
-    def __init__(self, cfg, hyperparams):
+    def __init__(self, cfg: get_cfg, hyperparams: dict) -> None:
         """
         Initialize CustomTrainer with hyperparameters.
 
@@ -235,7 +230,7 @@ class CustomTrainer(DefaultTrainer):
         super().__init__(cfg)
 
     @classmethod
-    def build_train_loader(cls, cfg):
+    def build_train_loader(cls, cfg: get_cfg) -> torch.utils.data.DataLoader:
         """
         Build training data loader using stored hyperparameters.
 
@@ -246,13 +241,11 @@ class CustomTrainer(DefaultTrainer):
             DataLoader with custom augmentations
         """
         if cls._hyperparams is None:
-            raise ValueError(
-                "Hyperparameters not set. Call CustomTrainer.set_hyperparams() first."
-            )
+            raise ValueError("Hyperparameters not set. Call CustomTrainer.set_hyperparams() first.")
         return build_train_loader(cfg, cls._hyperparams)
 
     @classmethod
-    def set_hyperparams(cls, hyperparams):
+    def set_hyperparams(cls, hyperparams: dict) -> None:
         """
         Set hyperparameters for the trainer class.
 
@@ -262,7 +255,7 @@ class CustomTrainer(DefaultTrainer):
         cls._hyperparams = hyperparams
 
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name):
+    def build_evaluator(cls, cfg: get_cfg, dataset_name: str) -> COCOEvaluator:
         """
         Build evaluator for validation.
 
@@ -276,7 +269,8 @@ class CustomTrainer(DefaultTrainer):
         return COCOEvaluator(dataset_name, output_dir=cfg.OUTPUT_DIR)
 
 
-def main():
+def main() -> None:
+    """Main function to set up and run training with Detectron2 and MLflow logging."""
     # Hyperparameters dictionary - all training parameters in one place
     hyperparams = {
         # Model architecture
@@ -369,9 +363,7 @@ def main():
 
     # Input
     cfg.INPUT.FORMAT = hyperparams["image_format"]  # Set image format (RGB or BGR)
-    cfg.INPUT.MIN_SIZE_TRAIN = hyperparams[
-        "input_min_size_train"
-    ]  # Configurable image sizes
+    cfg.INPUT.MIN_SIZE_TRAIN = hyperparams["input_min_size_train"]  # Configurable image sizes
     cfg.INPUT.MAX_SIZE_TRAIN = hyperparams["input_max_size_train"]
 
     # Use temporary directory for output (will be cleaned up after MLflow logging)

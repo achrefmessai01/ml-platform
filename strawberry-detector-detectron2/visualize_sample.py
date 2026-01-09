@@ -20,7 +20,8 @@ register_coco_instances(
 
 
 # Visualize a random sample from the training dataset
-def visualize_random_sample():
+def visualize_random_sample() -> None:
+    """Visualize a random sample from the strawberries training dataset."""
     dataset_dicts = DatasetCatalog.get("strawberries_train")
     dataset_metadata = MetadataCatalog.get("strawberries_train")
 

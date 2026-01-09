@@ -3,3 +3,5 @@ lightning
 albumentations
 pycocotools
 mlflow
+ruff
+mypy

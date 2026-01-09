@@ -28,6 +28,36 @@ fusermount -u datasets
 
 Experiments are tracked using MLflow. We are using the remote mlflow instance integrated into Gitlab. It can be accesed via this URI: `https://gitlab.com/api/v4/projects/72607084/ml/mlflow/`. You have to also provide an access token for authentication with at least the `api` scope. See: `https://docs.gitlab.com/user/project/ml/experiment_tracking/mlflow_client/#enable-mlflow-client-integration`.
 
+## Pre-commit Hooks
+
+This repository uses pre-commit hooks to ensure code quality and consistency. The hooks are configured to run automatically before each commit.
+
+### Setup
+
+Install pre-commit hooks:
+
+```bash
+pre-commit install
+```
+
+### Usage
+
+The hooks will run automatically on `git commit`. To manually run all hooks on all files:
+
+```bash
+pre-commit run --all-files
+```
+
+The configured hooks include:
+- **Ruff**: Python linter and formatter
+- **Trailing whitespace**: Removes trailing whitespace
+- **End of file fixer**: Ensures files end with a newline
+- **YAML checker**: Validates YAML files
+- **Large files checker**: Prevents accidentally committing large files
+- **Merge conflict checker**: Detects merge conflict markers
+- **Private key detector**: Prevents committing private keys
+- **Submodules forbidder**: Prevents adding git submodules
+
 ## Workflow
 
 The general workflow for developing and training models is as follows:

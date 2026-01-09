@@ -5,4 +5,5 @@ autodistill
 autodistill-grounded-sam
 numpy
 opencv-python
-roboflow
+ruff
+mypy

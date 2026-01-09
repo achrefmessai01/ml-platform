@@ -1,7 +1,6 @@
-from rfdetr import RFDETRLarge
-import numpy as np
 import supervision as sv
 from PIL import Image
+from rfdetr import RFDETRLarge
 
 weights_path = "checkpoint_best_total.pth"
 image_path = "dataset1_5d233ff4-IMG_9336_jpg.rf.62daba4b2dce52c85189137c341b73d5.jpg"
