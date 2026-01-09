@@ -1,1 +1,1 @@
-"""Core package for strawberry classifier"""
+"""Core package for strawberry classifier."""

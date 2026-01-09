@@ -1,10 +1,18 @@
-import torch
 import matplotlib.pyplot as plt
+import torch
 from torchvision.io import read_image
 from torchvision.transforms import v2
+
 from model import LeafModel
 
-def main():
+
+def main() -> None:
+    """Run inference on a leaf image using the trained segmentation model.
+
+    Loads a pre-trained LeafModel checkpoint, processes an input image,
+    runs inference to generate a segmentation mask, and saves the results
+    as a visualization.
+    """
     # Configuration
     MODEL_CHECKPOINT_PATH = "best-model.ckpt"  # Update this path
     IMAGE_PATH = "dataset1_5d233ff4-IMG_9336_jpg.rf.62daba4b2dce52c85189137c341b73d5.jpg"  # Update this path
@@ -18,7 +26,7 @@ def main():
         encoder_name="resnet34",
         in_channels=3,
         out_classes=1,
-        t_max=1  # Dummy value, not used in inference
+        t_max=1,  # Dummy value, not used in inference
     )
     model.to(DEVICE)
     model.eval()
@@ -28,9 +36,11 @@ def main():
     image = read_image(IMAGE_PATH).float()  # Keep as uint8 equivalent, no /255.0 to match training
 
     # Apply transforms
-    transforms = v2.Compose([
-        v2.Resize((256, 256), interpolation=v2.InterpolationMode.NEAREST),
-    ])
+    transforms = v2.Compose(
+        [
+            v2.Resize((256, 256), interpolation=v2.InterpolationMode.NEAREST),
+        ]
+    )
     image = transforms(image)
 
     # Run inference
@@ -53,15 +63,16 @@ def main():
 
     # Predicted mask
     plt.subplot(1, 2, 2)
-    plt.imshow(pred_mask.numpy(), cmap='gray')
+    plt.imshow(pred_mask.numpy(), cmap="gray")
     plt.title("Predicted Mask")
     plt.axis("off")
 
     plt.tight_layout()
-    plt.savefig("inference_result.png", dpi=300, bbox_inches='tight')
+    plt.savefig("inference_result.png", dpi=300, bbox_inches="tight")
     plt.close()
 
     print("Inference completed. Result saved as 'inference_result.png'.")
+
 
 if __name__ == "__main__":
     main()

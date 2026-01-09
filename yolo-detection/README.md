@@ -84,7 +84,7 @@ strawberry-cli visualize-obb \
 ```python
 from strawberry_classifier import StrawberryDetector, StrawberryClassifier
 from strawberry_classifier.visualization.plot_utils import (
-    plot_yolo_obb, 
+    plot_yolo_obb,
     visualize_dataset_obb_samples
 )
 
@@ -92,7 +92,7 @@ from strawberry_classifier.visualization.plot_utils import (
 detector = StrawberryDetector('path/to/model.pt')
 results = detector.predict('path/to/image.jpg')
 
-# Classification  
+# Classification
 classifier = StrawberryClassifier('path/to/model.pt')
 results = classifier.predict('path/to/image.jpg')
 

@@ -3,8 +3,8 @@ from torchmetrics import ConfusionMatrix
 
 
 def create_confusion_matrix_from_predictions(
-    preds, targets, num_classes, class_names=None
-):
+    preds: torch.Tensor, targets: torch.Tensor, num_classes: int, class_names: list[str] | None = None
+) -> tuple[str, torch.Tensor]:
     """Create normalized confusion matrix from pre-collected predictions.
 
     This function generates a confusion matrix plot from already computed predictions
@@ -23,7 +23,6 @@ def create_confusion_matrix_from_predictions(
             - str: Path to the saved confusion matrix plot image.
             - torch.Tensor: The computed confusion matrix tensor.
     """
-
     # Initialize confusion matrix with normalization
     confmat = ConfusionMatrix(
         task="multiclass",

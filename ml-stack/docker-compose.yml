@@ -50,7 +50,7 @@ services:
       - LABEL_STUDIO_HOST=${LABEL_STUDIO_HOST:-}
       - JSON_LOG=1
     command: label-studio-uwsgi
-  
+
   label-studio-db:
     image: pgautoupgrade/pgautoupgrade:13-alpine
     hostname: db
@@ -81,7 +81,7 @@ services:
     volumes:
       - ${ML_STACK_FOLDER}/minio/data:/data
     command: server /data --console-address ":9001"
-  
+
   mlflow-db:
     user: "1001:1001"
     restart: always
@@ -102,7 +102,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 3
-  
+
   mlflow-tracking_server:
     restart: always
     build: ./mlflow

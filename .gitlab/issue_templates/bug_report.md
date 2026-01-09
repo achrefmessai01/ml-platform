@@ -18,4 +18,4 @@
 ## Additional Information
 [Any other context about the problem.]
 
-/label ~type:bug 
+/label ~type:bug

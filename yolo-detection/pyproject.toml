@@ -1,73 +1,26 @@
-[build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
+[tool.ruff]
+line-length = 120
 
-[project]
-name = "strawberry-classifier"
-version = "0.1.0"
-description = "YOLO11-based strawberry detection and classification"
-readme = "README.md"
-requires-python = ">=3.8"
-license = {text = "MIT"}
-authors = [
-    {name = "Your Name", email = "your.email@example.com"}
-]
-keywords = ["yolo", "strawberry", "detection", "classification", "computer-vision"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Image Recognition",
-]
+[tool.ruff.lint]
+# Enable specific rule sets to match ament_lint:
+# E, W: Pycodestyle
+# F:    Pyflakes
+# D:    Pydocstyle
+# I:    Isort
+# N:    Pep8-naming
+# ANN:  Type annotations
+select = ["E", "W", "F", "D", "I", "N", "ANN"]
 
-dependencies = [
-    "ultralytics>=8.0.0",
-    "pyyaml>=5.4.0",
-    "opencv-python>=4.5.0",
-    "matplotlib>=3.3.0",
-    "tqdm>=4.60.0",
-    "numpy>=1.21.0",
-    "Pillow>=8.0.0",
-]
+ignore = [
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "N806", # Variable in function should be lowercase
+    "N803", # Argument name should be lowercase
+    "D401", # First line should be in imperative mood
+    "ANN003", # Missing type annotation for **kwargs
+    ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=6.0",
-    "black>=22.0",
-    "isort>=5.0",
-    "flake8>=4.0",
-    "mypy>=0.900",
-]
-
-[project.scripts]
-strawberry-cli = "strawberry_classifier.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/yourusername/strawberry-classifier"
-Repository = "https://github.com/yourusername/strawberry-classifier.git"
-Issues = "https://github.com/yourusername/strawberry-classifier/issues"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["strawberry_classifier*"]
-
-[tool.black]
-line-length = 88
-target-version = ["py38"]
-
-[tool.isort]
-profile = "black"
-line_length = 88
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
 
 [tool.mypy]
-python_version = "3.8"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true

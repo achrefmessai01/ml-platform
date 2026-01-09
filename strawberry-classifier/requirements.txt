@@ -4,3 +4,5 @@ pytorch-lightning
 mlflow
 torchmetrics
 tqdm
+ruff
+mypy

@@ -26,15 +26,14 @@ class StrawberryClassifier(pl.LightningModule):
         config (dict): Configuration dictionary containing model and training parameters.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict) -> None:
+        """Initialize the StrawberryClassifier module."""
         super().__init__()
         self.save_hyperparameters()
         self.config = config
 
         # EfficientNet backbone
-        self.model = models.efficientnet_v2_m(
-            weights=models.EfficientNet_V2_M_Weights.DEFAULT
-        )
+        self.model = models.efficientnet_v2_m(weights=models.EfficientNet_V2_M_Weights.DEFAULT)
         # EfficientNet-V2-M has 1280 features before the classifier
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=config["dropout_rate"], inplace=True),
@@ -46,7 +45,7 @@ class StrawberryClassifier(pl.LightningModule):
         # For collecting validation predictions efficiently
         self.validation_step_outputs: list = []
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass through the model.
 
         Args:
@@ -57,7 +56,7 @@ class StrawberryClassifier(pl.LightningModule):
         """
         return self.model(x)
 
-    def training_step(self, batch, _):
+    def training_step(self, batch: tuple[torch.Tensor, torch.Tensor], _: int) -> torch.Tensor:
         """Training step for one batch.
 
         Args:
@@ -76,7 +75,7 @@ class StrawberryClassifier(pl.LightningModule):
         self.log("train_acc", acc, prog_bar=True)
         return loss
 
-    def validation_step(self, batch, _):
+    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], _: int) -> torch.Tensor:
         """Validation step for one batch.
 
         Computes validation loss and accuracy, and collects predictions
@@ -99,13 +98,11 @@ class StrawberryClassifier(pl.LightningModule):
         self.log("val_acc", acc, prog_bar=True)
 
         # Collect predictions and targets for confusion matrix
-        self.validation_step_outputs.append(
-            {"preds": preds.detach().cpu(), "targets": targets.detach().cpu()}
-        )
+        self.validation_step_outputs.append({"preds": preds.detach().cpu(), "targets": targets.detach().cpu()})
 
         return loss
 
-    def on_validation_epoch_start(self):
+    def on_validation_epoch_start(self) -> None:
         """Called at the start of each validation epoch.
 
         Clears previous epoch's predictions to ensure only the final
@@ -114,7 +111,7 @@ class StrawberryClassifier(pl.LightningModule):
         # Clear previous epoch's predictions at the start of each validation epoch
         self.validation_step_outputs.clear()
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self) -> None:
         """Called at the end of each validation epoch.
 
         Keeps the predictions from the final validation epoch for confusion matrix
@@ -123,15 +120,13 @@ class StrawberryClassifier(pl.LightningModule):
         # Keep the predictions from the final validation epoch for confusion matrix
         pass
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> dict[str, list]:
         """Configure the optimizer and learning rate scheduler for training.
 
         Returns:
             dict: Dictionary containing optimizer and lr_scheduler configuration.
         """
-        optimizer = torch.optim.AdamW(
-            self.parameters(), lr=self.config["learning_rate"]
-        )
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.config["learning_rate"])
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
             T_max=self.config["max_epochs"],
@@ -140,7 +135,7 @@ class StrawberryClassifier(pl.LightningModule):
         return [optimizer], [scheduler]
 
 
-def train_classifier(config: dict):
+def train_classifier(config: dict) -> StrawberryClassifier:
     """Train a strawberry classifier with MLflow tracking and model registry.
 
     This function handles the complete training pipeline including:
@@ -170,19 +165,11 @@ def train_classifier(config: dict):
     # Training transforms with RandAugment
     train_transform = transforms.Compose(
         [
-            transforms.Resize(
-                (config["image_size"], config["image_size"])
-            ),  # Ensure consistent size
+            transforms.Resize((config["image_size"], config["image_size"])),  # Ensure consistent size
             transforms.RandAugment(
-                num_ops=config[
-                    "randaugment_num_ops"
-                ],  # Number of augmentation operations to apply
-                magnitude=config[
-                    "randaugment_magnitude"
-                ],  # Magnitude of augmentation (0-10 scale)
-                num_magnitude_bins=config[
-                    "randaugment_num_magnitude_bins"
-                ],  # Number of magnitude bins
+                num_ops=config["randaugment_num_ops"],  # Number of augmentation operations to apply
+                magnitude=config["randaugment_magnitude"],  # Magnitude of augmentation (0-10 scale)
+                num_magnitude_bins=config["randaugment_num_magnitude_bins"],  # Number of magnitude bins
             ),
             base_transform,  # Apply normalization after augmentation
         ]
@@ -191,9 +178,7 @@ def train_classifier(config: dict):
     # Validation transforms (no augmentation)
     val_transform = transforms.Compose(
         [
-            transforms.Resize(
-                (config["image_size"], config["image_size"])
-            ),  # Ensure consistent size for validation
+            transforms.Resize((config["image_size"], config["image_size"])),  # Ensure consistent size for validation
             base_transform,
         ]
     )
@@ -207,16 +192,14 @@ def train_classifier(config: dict):
         shuffle=True,
         num_workers=config["num_workers"],
     )
-    val_loader = DataLoader(
-        val_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"]
-    )
+    val_loader = DataLoader(val_dataset, batch_size=config["batch_size"], num_workers=config["num_workers"])
 
     # Model
     model = StrawberryClassifier(config=config)
 
     # Set up MLflow tracking URI and experiment - this handles existing experiments automatically
     mlflow.set_tracking_uri(config["mlflow_uri"])
-    experiment = mlflow.set_experiment(config["experiment_name"])
+    mlflow.set_experiment(config["experiment_name"])
 
     # MLflow logger using experiment_name (PyTorch Lightning requirement)
     mlflow_kwargs = {
@@ -256,30 +239,22 @@ def train_classifier(config: dict):
         accelerator="auto",
         devices="auto",
         callbacks=[early_stop_callback, checkpoint_callback],
-        accumulate_grad_batches=config[
-            "accumulate_grad_batches"
-        ],  # Gradient accumulation
+        accumulate_grad_batches=config["accumulate_grad_batches"],  # Gradient accumulation
     )
 
     # Train
     trainer.fit(model, train_loader, val_loader)
 
     # Load the best model for MLflow saving
-    best_model = StrawberryClassifier.load_from_checkpoint(
-        checkpoint_callback.best_model_path, config=config
-    )
+    best_model = StrawberryClassifier.load_from_checkpoint(checkpoint_callback.best_model_path, config=config)
 
     # Create confusion matrix from collected validation predictions (use original model)
     class_names = train_dataset.classes if hasattr(train_dataset, "classes") else None
 
     if model.validation_step_outputs:
         # Concatenate all collected predictions and targets
-        all_preds = torch.cat(
-            [output["preds"] for output in model.validation_step_outputs]
-        )
-        all_targets = torch.cat(
-            [output["targets"] for output in model.validation_step_outputs]
-        )
+        all_preds = torch.cat([output["preds"] for output in model.validation_step_outputs])
+        all_targets = torch.cat([output["targets"] for output in model.validation_step_outputs])
 
         # Create confusion matrix
         cm_path, _ = create_confusion_matrix_from_predictions(

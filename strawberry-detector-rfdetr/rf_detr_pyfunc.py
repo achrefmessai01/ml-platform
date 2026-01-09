@@ -1,7 +1,6 @@
-from rfdetr import RFDETRLarge
 import mlflow.pyfunc
 import numpy as np
-
+from rfdetr import RFDETRLarge
 
 
 class RFDetrPyFuncModel(mlflow.pyfunc.PythonModel):
@@ -11,24 +10,25 @@ class RFDetrPyFuncModel(mlflow.pyfunc.PythonModel):
         PythonModel (mlflow.pyfunc.PythonModel): Base class for MLflow Python models.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the RFDetrPyFuncModel class."""
         self.model = None
 
-    def load_context(self, context):
+    def load_context(self, context: mlflow.pyfunc.PythonModelContext) -> None:
+        """Load the model from the specified context."""
         weights_path = context.artifacts["weights"]
         self.model = RFDETRLarge(pretrain_weights=weights_path)
         self.model.optimize_for_inference(compile=False)
 
-    def predict(self, model_input, params):
+    def predict(self, model_input: np.ndarray, params: dict) -> dict:
+        """Perform prediction on the input data."""
         confidence_threshold = params.get("confidence_threshold")
         img = np.array(model_input)
         # Convert long types to int for detectron2 compatibility
         img = img.astype(np.uint8)
 
         if self.model is None:
-            raise ValueError(
-                "Model is not loaded. Please ensure 'load_context' has been called."
-            )
+            raise ValueError("Model is not loaded. Please ensure 'load_context' has been called.")
         detections = self.model.predict(img, threshold=confidence_threshold)
         return {
             "boxes": detections.xyxy,

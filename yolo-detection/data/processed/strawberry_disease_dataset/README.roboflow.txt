@@ -26,5 +26,3 @@ The following pre-processing was applied to each image:
 The following augmentation was applied to create 2 versions of each source image:
 * Equal probability of one of the following 90-degree rotations: none, clockwise, counter-clockwise, upside-down
 * Random rotation of between -45 and +45 degrees
-
-

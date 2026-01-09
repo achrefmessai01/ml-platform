@@ -3,4 +3,3 @@ https://universe.roboflow.com/esther-strawberry/strawberry-fruit-and-leaf-ripene
 
 Provided by a Roboflow user
 License: CC BY 4.0
-

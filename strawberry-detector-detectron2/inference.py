@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Clean MLflow + Detectron2 inference script.
+
 Loads model weights from MLflow and runs strawberry detection.
 """
 
@@ -20,8 +21,10 @@ from mlflow.tracking import MlflowClient
 
 
 def load_model_from_mlflow(
-    model_name, model_version="latest", tracking_uri="https://gitlab.com/api/v4/projects/72607084/ml/mlflow/"
-):
+    model_name: str,
+    model_version: str = "latest",
+    tracking_uri: str = "https://gitlab.com/api/v4/projects/72607084/ml/mlflow/",
+) -> tuple[str, str]:
     """Download model weights from MLflow run artifacts."""
     mlflow.set_tracking_uri(tracking_uri)
     client = MlflowClient()
@@ -30,9 +33,7 @@ def load_model_from_mlflow(
     if model_version == "latest":
         model_versions = client.get_latest_versions(model_name, stages=["None"])
         if not model_versions:
-            model_versions = client.get_latest_versions(
-                model_name, stages=["Production", "Staging"]
-            )
+            model_versions = client.get_latest_versions(model_name, stages=["Production", "Staging"])
         if not model_versions:
             raise ValueError(f"No versions found for model {model_name}")
         model_version = model_versions[0]
@@ -68,7 +69,8 @@ def load_model_from_mlflow(
         raise e
 
 
-def main():
+def main() -> None:
+    """Main function to run inference using Detectron2 and MLflow model weights."""
     # Configuration
     MODEL_NAME = "strawberry-detector-faster-rcnn"
     MODEL_VERSION = "latest"
@@ -85,9 +87,7 @@ def main():
 
     # Setup Detectron2 config
     cfg = get_cfg()
-    cfg.merge_from_file(
-        model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")
-    )
+    cfg.merge_from_file(model_zoo.get_config_file("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"))
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # strawberry class
     cfg.MODEL.DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5
@@ -95,18 +95,14 @@ def main():
     # Load model weights
     temp_dir = None
     try:
-        model_weights_path, temp_dir = load_model_from_mlflow(
-            MODEL_NAME, MODEL_VERSION, TRACKING_URI
-        )
+        model_weights_path, temp_dir = load_model_from_mlflow(MODEL_NAME, MODEL_VERSION, TRACKING_URI)
         cfg.MODEL.WEIGHTS = model_weights_path
         print("Successfully loaded MLflow model weights")
 
     except Exception as e:
         print(f"Could not load MLflow model: {e}")
         print("Falling back to pretrained COCO weights")
-        cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(
-            "COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml"
-        )
+        cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url("COCO-Detection/faster_rcnn_R_50_FPN_3x.yaml")
         cfg.MODEL.ROI_HEADS.NUM_CLASSES = 80  # COCO classes
 
     # Create predictor and run inference
@@ -130,9 +126,7 @@ def main():
 
     # Visualize results
     metadata = MetadataCatalog.get("strawberry_inference")
-    metadata.thing_classes = (
-        ["strawberry"] if cfg.MODEL.ROI_HEADS.NUM_CLASSES == 1 else ["object"]
-    )
+    metadata.thing_classes = ["strawberry"] if cfg.MODEL.ROI_HEADS.NUM_CLASSES == 1 else ["object"]
 
     v = Visualizer(image[:, :, ::-1], metadata=metadata, scale=1.0)
     vis = v.draw_instance_predictions(instances)

@@ -1,12 +1,14 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Optional
+
 from ..data.utils import load_yaml, save_yaml
 
 
 @dataclass
 class TrainingConfig:
-    """Training configuration"""
+    """Training configuration."""
+
     model: str = "yolo11n.pt"
     data: str = ""
     task: str = "detect"  # detect or classify
@@ -17,22 +19,23 @@ class TrainingConfig:
     project: str = "runs/train"
     name: str = "exp"
     patience: int = 10
-    
+
     @classmethod
-    def from_yaml(cls, config_path: Path) -> 'TrainingConfig':
-        """Load config from YAML file"""
+    def from_yaml(cls, config_path: Path) -> "TrainingConfig":
+        """Load config from YAML file."""
         config_dict = load_yaml(config_path)
         return cls(**config_dict)
-    
-    def to_yaml(self, config_path: Path):
-        """Save config to YAML file"""
+
+    def to_yaml(self, config_path: Path) -> None:
+        """Save config to YAML file."""
         config_dict = self.__dict__
         save_yaml(config_dict, config_path)
 
 
-@dataclass 
+@dataclass
 class PredictionConfig:
-    """Prediction configuration"""
+    """Prediction configuration."""
+
     model: str = ""
     source: str = ""
     task: str = "detect"
@@ -47,7 +50,8 @@ class PredictionConfig:
 
 @dataclass
 class DataConfig:
-    """Data preparation configuration"""
+    """Data preparation configuration."""
+
     source_dir: str = ""
     output_dir: str = ""
     train_ratio: float = 0.7
@@ -58,7 +62,8 @@ class DataConfig:
 
 @dataclass
 class CropConfig:
-    """Crop extraction configuration"""
+    """Crop extraction configuration."""
+
     dataset_path: str = ""
     output_dir: str = ""
     crop_size: Optional[tuple] = None
