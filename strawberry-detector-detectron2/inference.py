@@ -20,7 +20,7 @@ from mlflow.tracking import MlflowClient
 
 
 def load_model_from_mlflow(
-    model_name, model_version="latest", tracking_uri="http://localhost:5011"
+    model_name, model_version="latest", tracking_uri="https://gitlab.com/api/v4/projects/72607084/ml/mlflow/"
 ):
     """Download model weights from MLflow run artifacts."""
     mlflow.set_tracking_uri(tracking_uri)
@@ -72,7 +72,7 @@ def main():
     # Configuration
     MODEL_NAME = "strawberry-detector-faster-rcnn"
     MODEL_VERSION = "latest"
-    TRACKING_URI = "http://localhost:5011"
+    TRACKING_URI = "https://gitlab.com/api/v4/projects/72607084/ml/mlflow/"
     IMAGE_PATH = "datasets/merged_data/detection/combined_coco/test/dataset1_05d2f321-IMG_9823.JPEG"
     OUTPUT_PATH = "detection_result_mlflow.jpg"
 

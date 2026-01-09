@@ -317,7 +317,7 @@ def main():
         "aug_saturation_range": [1, 1],  # Saturation adjustment range
         "aug_lighting_scale": 1.0,  # PCA-based color jitter scale
         # MLflow parameters
-        "mlflow_tracking_uri": "http://localhost:5011",
+        "mlflow_tracking_uri": "https://gitlab.com/api/v4/projects/72607084/ml/mlflow/",
         "mlflow_experiment": "strawberry-detection",
         "registered_model_name": "strawberry-detector-faster-rcnn",
     }
