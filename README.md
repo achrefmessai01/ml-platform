@@ -3,25 +3,29 @@
 This is the central monorepo for all machine learning related projects and components.
 For usage and instructions please refer to the readme in the individual project directories.
 
-## Datasets
+## Data storage
 
-Datasets are stored on minio which is can be started using the docker-compose file in the ml-stack directory. The data is currently only stored on the verda shared drive. This will change in the future.
-If you want to use a dataset for training, you can fuse the datasets bucket to the local filesystem using the following command:
+Data is stored in Hetzner s3 buckets which can be fused to the local filesystem for easy access. In order for this to work the password file has to be created like below.
+The access key and secret can be created in the hetzner console.
 
 ```bash
-mkdir datasets
-s3fs datasets $(pwd)/datasets -o passwd_file=${HOME}/.passwd-s3fs -o url=http://localhost:9000/ -o use_path_request_style
+echo ACCESS_KEY_ID:SECRET_ACCESS_KEY > ${HOME}/.passwd-s3fs
+chmod 600 ${HOME}/.passwd-s3fs
 ```
 
-Replace localhost with the server IP if you are accessing it remotely.
-You also have to make sure to have an appropriate password file in the right place.
-For more information on fusing please refer to:
-https://github.com/s3fs-fuse/s3fs-fuse
-
-For unmounting the datasets bucket use:
+Below you can see an example for fusing the plant-datasets bucket. 
 
 ```bash
-fusermount -u datasets
+mkdir plant-datasets
+s3fs plant-datasets ./plant-datasets -o passwd_file=${HOME}/.passwd-s3fs -o url=hel1.your-objectstorage.com -o use_path_request_style
+```
+
+https://github.com/s3fs-fuse/s3fs-fuse
+
+For unmounting the bucket use:
+
+```bash
+fusermount -u plant-datasets
 ```
 
 ## Experiments
