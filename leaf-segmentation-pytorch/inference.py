@@ -15,7 +15,7 @@ def main() -> None:
     """
     # Configuration
     MODEL_CHECKPOINT_PATH = "best-model.ckpt"  # Update this path
-    IMAGE_PATH = "dataset1_5d233ff4-IMG_9336_jpg.rf.62daba4b2dce52c85189137c341b73d5.jpg"  # Update this path
+    IMAGE_PATH = "datasets/strawberry/valid/dataset1_2bd8ab67-IMG_9344_jpg.rf.7d67c57277027a9cd34451062fdf2fe6.jpg"
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load the model

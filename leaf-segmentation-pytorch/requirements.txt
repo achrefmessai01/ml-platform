@@ -5,3 +5,5 @@ pycocotools
 mlflow
 ruff
 mypy
+onnx
+onnxruntime
